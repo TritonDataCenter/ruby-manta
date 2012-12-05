@@ -1,0 +1,10 @@
+# test with DSA as well RSA keys
+# comment every method
+# write document
+# add tests
+# check works with ruby 1.8.7 as well. also check on smartos
+# add debugging mode which dumps text
+# add support for conditional GET/PUT/POST, using date or etags
+# add support for heads?
+# do we really need a seprate self.prepare()? Maybe just initialize is enough.
+
