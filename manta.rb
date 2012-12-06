@@ -88,7 +88,9 @@ class Manta
   # The path must start with /<user>/stor or /<user/public. Data can be any
   # sequence of octets. The HTTP Content-Type stored on Manta can be set
   # with an optional :content_type argument; the default is
-  # application/octet-stream.
+  # application/octet-stream. The number of distributed replicates of an object
+  # stored in Manta can be set with an optional :durability_level; the default
+  # is 2.
   #
   # Returns true along with received HTTP headers.
   #
@@ -99,8 +101,17 @@ class Manta
     url = obj_url(obj_path)
     headers = gen_headers(data)
 
+    durability_level = opts[:durability_level]
+    if durability_level
+      raise unless durability_level > 0
+      headers.push([ 'Durability-Level', durability_level ])
+    end
+
     content_type = opts[:content_type]
-    headers.push([ 'Content-Type', content_type ]) if content_type
+    if content_type
+      raise unless content_type.is_a? String
+      headers.push([ 'Content-Type', content_type ])
+    end
 
     attempt(opts[:attempts]) do
       result = @client.put(url, data, headers)
