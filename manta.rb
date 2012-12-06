@@ -30,31 +30,31 @@ class Manta
   DEFAULT_CONNECT_TIMEOUT = 5
   DEFAULT_SEND_TIMEOUT    = 60
   DEFAULT_RECEIVE_TIMEOUT = 60
+  MAX_LIMIT        = 1000
   LIB_VERSION      = '1.0.0'
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
-  MAX_LIMIT        = 1000
   ERROR_CLASSES    = [ 'AuthSchemeError', 'AuthorizationError',
-	               'BadRequestError', 'ChecksumError',
-		       'ConcurrentRequestError', 'ContentLengthError',
+                       'BadRequestError', 'ChecksumError',
+                       'ConcurrentRequestError', 'ContentLengthError',
                        'InvalidArgumentError', 'InvalidAuthTokenError',
-		       'InvalidCredentialsError',
-		       'InvalidDurabilityLevelError', 'InvalidKeyIdError',
+                       'InvalidCredentialsError',
+                       'InvalidDurabilityLevelError', 'InvalidKeyIdError',
                        'InvalidJobError', 'InvalidLinkError',
-		       'InvalidSignatureError', 'DirectoryDoesNotExistError',
-		       'DirectoryExistsError', 'DirectoryNotEmptyError',
-		       'DirectoryOperationError', 'JobNotFoundError',
-		       'JobStateError', 'KeyDoesNotExistError',
-		       'NotAcceptableError', 'NotEnoughSpaceError',
-		       'LinkNotFoundError', 'LinkNotObjectError',
-		       'LinkRequiredError', 'ParentNotDirectoryError',
-		       'PreSignedRequestError', 'RequestEntityTooLargeError',
-		       'ResourceNotFoundError', 'RootDirectoryError',
-		       'ServiceUnavailableError', 'SSLRequiredError',
-		       'UploadTimeoutError', 'UserDoesNotExistError',
-		       # and errors that are specific to this class:
-		       'CorruptResultError', 'UnknownError',
-		       'UnsupportedKeyError' ]
+                       'InvalidSignatureError', 'DirectoryDoesNotExistError',
+                       'DirectoryExistsError', 'DirectoryNotEmptyError',
+                       'DirectoryOperationError', 'JobNotFoundError',
+                       'JobStateError', 'KeyDoesNotExistError',
+                       'NotAcceptableError', 'NotEnoughSpaceError',
+                       'LinkNotFoundError', 'LinkNotObjectError',
+                       'LinkRequiredError', 'ParentNotDirectoryError',
+                       'PreSignedRequestError', 'RequestEntityTooLargeError',
+                       'ResourceNotFoundError', 'RootDirectoryError',
+                       'ServiceUnavailableError', 'SSLRequiredError',
+                       'UploadTimeoutError', 'UserDoesNotExistError',
+                       # and errors that are specific to this class:
+                       'CorruptResultError', 'UnknownError',
+                       'UnsupportedKeyError' ]
 
 
 
@@ -65,7 +65,7 @@ class Manta
     raise unless user.is_a?(String) && user.size > 0
     raise unless key_id
     raise unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
-	         priv_key.is_a?(OpenSSL::PKey::DSA)
+                 priv_key.is_a?(OpenSSL::PKey::DSA)
 
     @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
     raise unless @attempts > 0
@@ -99,7 +99,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def put_object(obj_path, data, opts = {})
-    url = obj_url(obj_path)
+    url     = obj_url(obj_path)
     headers = gen_headers(data)
 
     durability_level = opts[:durability_level]
@@ -136,7 +136,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_object(obj_path, opts = {})
-    url = obj_url(obj_path)
+    url     = obj_url(obj_path)
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
@@ -150,7 +150,7 @@ class Manta
 
         return result.body, result.headers
       end
- 
+
       raise_error(result)
     end
   end
@@ -168,9 +168,9 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def delete_object(obj_path, opts = {})
-    url = obj_url(obj_path)
+    url     = obj_url(obj_path)
     headers = gen_headers()
- 
+
     attempt(opts[:attempts]) do
       result = @client.delete(url, nil, headers)
       raise unless result.is_a? HTTP::Message
@@ -195,11 +195,11 @@ class Manta
     url = obj_url(dir_path)
     headers = gen_headers()
     headers.push([ 'Content-Type', 'application/json; type=directory' ])
- 
+
     attempt(opts[:attempts]) do
       result = @client.put(url, nil, headers)
       raise unless result.is_a? HTTP::Message
-      
+
       return true, result.headers if result.status == 204
       raise_error(result)
     end
@@ -221,7 +221,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def list_directory(dir_path, opts = {})
-    url = obj_url(dir_path)
+    url     = obj_url(dir_path)
     headers = gen_headers()
     query_parameters = {}
 
@@ -246,7 +246,7 @@ class Manta
         json_chunks = result.body.split("\r\n")
 
         sent_num_entries = result.headers['Result-Set-Size'].to_i
-	if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
+        if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
            json_chunks.size > limit
           raise CorruptResultError
         end
@@ -273,9 +273,9 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def delete_directory(dir_path, opts = {})
-    url = obj_url(dir_path)
+    url     = obj_url(dir_path)
     headers = gen_headers()
- 
+
     attempt(opts[:attempts]) do
       result = @client.delete(url, nil, headers)
       raise unless result.is_a? HTTP::Message
@@ -299,7 +299,7 @@ class Manta
   def put_link(dir_path, link_path, opts = {})
     headers = gen_headers()
     headers.push([ 'Content-Type', 'application/json; type=link' ],
-		 [ 'Location',     obj_url(dir_path)             ])
+                 [ 'Location',     obj_url(dir_path)             ])
 
     attempt(opts[:attempts]) do
       result = @client.put(obj_url(link_path), nil, headers)
@@ -337,9 +337,9 @@ class Manta
 
       if result.status == 201
         location = result.headers['Location']
-	raise unless location
+        raise unless location
 
-	return location, result.headers
+        return location, result.headers
       end
 
       raise_error(result)
@@ -358,18 +358,18 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job(job_path, opts = {})
-    url = job_url(job_path)
+    url     = job_url(job_path)
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
       result = @client.get(url, nil, headers)
       raise unless result.is_a? HTTP::Message
-      
+
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'application/json'
 
-	job = JSON.parse(result.body)
-	return job, result.headers
+        job = JSON.parse(result.body)
+        return job, result.headers
       end
 
       raise_error(result)
@@ -391,7 +391,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_errors(job_path, opts = {})
-    url = job_url(job_path, '/err')
+    url     = job_url(job_path, '/err')
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
@@ -427,13 +427,13 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def cancel_job(job_path, opts = {})
-    url = job_url(job_path, '/cancel')
+    url     = job_url(job_path, '/cancel')
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
       raise unless result.is_a? HTTP::Message
- 
+
       return true, result.headers if result.status == 204
       raise_error(result)
     end
@@ -458,7 +458,7 @@ class Manta
     headers.push([ 'Content-Type', 'text/plain' ])
 
     data = obj_paths.map { |p| '/' + @user + '/stor' + p }.
-	             join("\n")
+                     join("\n")
 
     attempt(opts[:attempts]) do
       result = @client.post(url, data, headers)
@@ -483,9 +483,9 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def end_job_input(job_path, opts = {})
-    url = job_url(job_path, '/in/end')
+    url     = job_url(job_path, '/in/end')
     headers = gen_headers()
- 
+
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
       raise unless result.is_a? HTTP::Message
@@ -510,7 +510,7 @@ class Manta
   def get_job_input(job_path, opts = {})
     get_job_state_streams(:in, job_path, opts)
   end
- 
+
 
 
   # Get a list of objects that contain the intermediate results of a running
@@ -573,7 +573,7 @@ class Manta
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=job'
 
-        json_chunks = result.body.split("\r\n")
+        json_chunks      = result.body.split("\r\n")
         sent_num_entries = result.headers['Result-Set-Size']
         raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
 
@@ -581,7 +581,7 @@ class Manta
 
         return job_entries, result.headers
       end
-      
+
       raise_error(result)
     end
   end
@@ -602,16 +602,16 @@ class Manta
   # Will throw an exception if given a key whose format it doesn't understand.
   def self.prepare(priv_key_data, opts = {})
     algo = if priv_key_data =~ /BEGIN RSA/
-            OpenSSL::PKey::RSA
-	  elsif priv_key_data =~ /BEGIN DSA/
-            OpenSSL::PKey::DSA
-          else
-            raise UnsupportedKeyError
-          end
+             OpenSSL::PKey::RSA
+           elsif priv_key_data =~ /BEGIN DSA/
+             OpenSSL::PKey::DSA
+           else
+             raise UnsupportedKeyError
+           end
 
     priv_key    = algo.new(priv_key_data)
     fingerprint = OpenSSL::Digest::MD5.hexdigest(priv_key.to_blob).
-	                               scan(/../).join(':')
+                                       scan(/../).join(':')
 
     client = HTTPClient.new
     client.connect_timeout = opts[:connect_timeout] || DEFAULT_CONNECT_TIMEOUT
@@ -650,7 +650,7 @@ class Manta
   def get_job_state_streams(type, path, opts)
     raise unless [:in, :out, :fail].include? type 
 
-    url = job_url(path, type.to_s)
+    url     = job_url(path, type.to_s)
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
@@ -685,7 +685,7 @@ class Manta
   def job_url(*args)
     path = if args.size == 0
              @job_base
-	   else
+           else
              raise unless args.first =~ @job_match
              args.join('/')
            end
@@ -711,7 +711,7 @@ class Manta
       begin
         return yield blk
       rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError,
-	     CorruptResultError => e
+             CorruptResultError => e
         raise e if attempt == tries
         sleep 2 ** attempt
         attempt += 1
@@ -729,9 +729,9 @@ class Manta
     sig = gen_signature(now)
 
     headers = [[ 'Date',           now        ],
-	       [ 'Authorization',  sig        ],
-	       [ 'User-Agent',     HTTP_AGENT ],
-	       [ 'Accept-Version', '~1.0'     ]]
+               [ 'Authorization',  sig        ],
+               [ 'User-Agent',     HTTP_AGENT ],
+               [ 'Accept-Version', '~1.0'     ]]
 
     if data
       md5 = OpenSSL::Digest::MD5.base64digest(data)
@@ -750,10 +750,10 @@ class Manta
 
     if @priv_key.class == OpenSSL::PKey::RSA
       digest = OpenSSL::Digest::SHA1.new
-      algo = 'rsa-sha1'
+      algo   = 'rsa-sha1'
     elsif @priv_key.class == OpenSSL::PKey::DSA
       digest = OpenSSL::Digest::DSS1.new
-      algo = 'dsa-sha1'
+      algo   = 'dsa-sha1'
     else
       raise UnsupportedKeyError
     end
