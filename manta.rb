@@ -632,6 +632,9 @@ class Manta
         raise unless result.headers['Content-Type'] == 'text/plain'
 
         paths = result.body.split("\n")
+#        sent_num_entries = result.headers['Result-Set-Size']
+#        raise CorruptResultError if paths.size != sent_num_entries.to_i
+
         return paths, result.headers
       end
 
@@ -778,5 +781,6 @@ sleep(5)
 manta_client.get_job_input(path)
 manta_client.get_job_output(path)
 manta_client.get_job_failures(path)
+manta_client.get_job_errors(path)
 manta_client.cancel_job(path)
 #----------
