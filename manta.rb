@@ -51,6 +51,7 @@ class Manta
 		       'ResourceNotFoundError', 'RootDirectoryError',
 		       'ServiceUnavailableError', 'SSLRequiredError',
 		       'UploadTimeoutError', 'UserDoesNotExistError',
+		       # and errors that are specific to this class:
 		       'CorruptResultError', 'UnknownError',
 		       'UnsupportedKeyError' ]
 
@@ -335,6 +336,43 @@ class Manta
       if result.status == 200
         job = JSON.parse(result.body)
 	return job, result.headers
+      end
+
+      raise_error(result)
+    end
+  end
+
+
+
+  # Gets errors that occured during the execution of a job in Manta at a given
+  # path.
+  #
+  # The path must start with /<user>/jobs and point at an actual job.
+  #
+  # Returns an array of hashes, each hash containing information about an
+  # error; this information is best-effort by Manta, so it may not be complete.
+  # Also returns received HTTP headers.
+  #
+  # If there was an unrecoverable error, throws an exception. On connection or
+  # corruption errors, more attempts will be made; the number of attempts can
+  # be altered by passing in :attempts.
+  def get_job_errors(job_path, opts = {})
+    url = job_url(job_path, '/err')
+    headers = gen_headers()
+
+    attempt(opts[:attempts]) do
+      result = @client.get(url, nil, headers)
+      raise unless result.is_a? HTTP::Message
+      raise unless result.headers['Content-Type'] == 'application/x-json-stream; type=job-error'
+
+      if result.status == 200
+        json_chunks = result.body.split("\r\n")
+#        sent_num_entries = result.headers['Result-Set-Size']
+#        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
+
+        errors = json_chunks.map { |i| JSON.parse(i) }
+
+        return errors, result.headers
       end
 
       raise_error(result)
@@ -706,7 +744,7 @@ end
 
 #----------
 #host = 'http://10.2.201.221'
-host = 'https://10.2.121.184'
+host = 'https://10.2.121.146'
 user = 'marsell'
 priv_key_data = File.read('/Users/tkukulje/.ssh/joyent')
 http_client, fingerprint, priv_key  = Manta.prepare(priv_key_data, :disable_ssl_verification => true)
@@ -724,8 +762,9 @@ path, _  = manta_client.create_job({ phases: [{ exec: 'grep foo' }] })
 manta_client.get_job(path)
 manta_client.list_jobs(:all)
 manta_client.add_job_keys(path, ['/marsell/stor/foo', '/marsell/stor/falafel'])
+sleep(5)
 manta_client.get_job_input(path)
 manta_client.get_job_output(path)
 manta_client.get_job_failures(path)
-state, _ = manta_client.cancel_job(path)
+manta_client.cancel_job(path)
 #----------
