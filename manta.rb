@@ -479,7 +479,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_input(job_path, opts = {})
-    get_job_progress(:in, job_path, opts)
+    get_job_state_streams(:in, job_path, opts)
   end
  
 
@@ -496,7 +496,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_output(job_path, opts = {})
-    get_job_progress(:out, job_path, opts)
+    get_job_state_streams(:out, job_path, opts)
   end
 
 
@@ -512,7 +512,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_failures(job_path, opts = {})
-    get_job_progress(:fail, job_path, opts)
+    get_job_state_streams(:fail, job_path, opts)
   end
 
 
@@ -618,7 +618,7 @@ class Manta
   # If there was an unrecoverable error, throws an exception. On connection or
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
-  def get_job_progress(type, path, opts)
+  def get_job_state_streams(type, path, opts)
     raise unless [:in, :out, :fail].include? type 
 
     url = job_url(path, type.to_s)
