@@ -215,6 +215,9 @@ class Manta
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
+        raise unless result.headers['Content-Type'] ==
+                     'application/x-json-stream; type=directory'
+
         json_chunks = result.body.split("\r\n")
         sent_num_entries = result.headers['Result-Set-Size']
         raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
@@ -334,7 +337,9 @@ class Manta
       raise unless result.is_a? HTTP::Message
       
       if result.status == 200
-        job = JSON.parse(result.body)
+        raise unless result.headers['Content-Type'] == 'application/json'
+
+	job = JSON.parse(result.body)
 	return job, result.headers
       end
 
@@ -363,9 +368,11 @@ class Manta
     attempt(opts[:attempts]) do
       result = @client.get(url, nil, headers)
       raise unless result.is_a? HTTP::Message
-      raise unless result.headers['Content-Type'] == 'application/x-json-stream; type=job-error'
 
       if result.status == 200
+        raise unless result.headers['Content-Type'] ==
+                     'application/x-json-stream; type=job-error'
+
         json_chunks = result.body.split("\r\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
 #        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
@@ -534,6 +541,9 @@ class Manta
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
+        raise unless result.headers['Content-Type'] ==
+                     'application/x-json-stream; type=job'
+
         json_chunks = result.body.split("\r\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
 #        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
@@ -619,6 +629,8 @@ class Manta
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
+        raise unless result.headers['Content-Type'] == 'text/plain'
+
         paths = result.body.split("\n")
         return paths, result.headers
       end
