@@ -33,6 +33,7 @@ class Manta
   LIB_VERSION      = '1.0.0'
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
+  MAX_LIMIT        = 1000
   ERROR_CLASSES    = [ 'AuthSchemeError', 'AuthorizationError',
 	               'BadRequestError', 'ChecksumError',
 		       'ConcurrentRequestError', 'ContentLengthError',
@@ -206,10 +207,12 @@ class Manta
 
 
 
-  # Gets a directory listing on Manta at a given path.
+  # Gets a lexicographically sorted directory listing on Manta at a given path,
   #
   # The path must start with /<user>/stor or /<user/public and point at an
-  # actual directory.
+  # actual directory. :limit optionally changes the maximum number of entries;
+  # the default is 1000. If given :marker, an object path, returned directory
+  # entries will begin from that point.
   #
   # Returns an array of hash objects, each object representing a directory
   # entry. Also returns the received HTTP headers.
@@ -220,9 +223,20 @@ class Manta
   def list_directory(dir_path, opts = {})
     url = obj_url(dir_path)
     headers = gen_headers()
- 
+    query_parameters = {}
+
+    limit = opts[:limit] || MAX_LIMIT
+    raise unless 0 < limit && limit <= MAX_LIMIT
+    query_parameters[:limit] = limit
+
+    marker = opts[:marker]
+    if marker
+      raise unless marker =~ @obj_match
+      query_parameters[:marker] = marker
+    end
+
     attempt(opts[:attempts]) do
-      result = @client.get(url, nil, headers)
+      result = @client.get(url, query_parameters, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
@@ -230,8 +244,12 @@ class Manta
                      'application/x-json-stream; type=directory'
 
         json_chunks = result.body.split("\r\n")
-        sent_num_entries = result.headers['Result-Set-Size']
-        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
+
+        sent_num_entries = result.headers['Result-Set-Size'].to_i
+	if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
+           json_chunks.size > limit
+          raise CorruptResultError
+        end
 
         dir_entries = json_chunks.map { |i| JSON.parse(i) }
 
