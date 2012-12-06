@@ -556,8 +556,8 @@ class Manta
                      'application/x-json-stream; type=job'
 
         json_chunks = result.body.split("\r\n")
-#        sent_num_entries = result.headers['Result-Set-Size']
-#        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
+        sent_num_entries = result.headers['Result-Set-Size']
+        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
 
         job_entries = json_chunks.map { |i| JSON.parse(i) }
 
