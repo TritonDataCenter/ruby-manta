@@ -22,6 +22,7 @@ require 'httpclient'
 require 'base64'
 require 'date'
 require 'json'
+require 'cgi'
 
 
 
@@ -66,6 +67,14 @@ class Manta
     raise unless key_id
     raise unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
                  priv_key.is_a?(OpenSSL::PKey::DSA)
+
+    if priv_key.class == OpenSSL::PKey::RSA
+      @digest      = OpenSSL::Digest::SHA1.new
+      @digest_name = 'rsa-sha1'
+    else
+      @digest      = OpenSSL::Digest::DSS1.new
+      @digest_name = 'dsa-sha1'
+    end
 
     @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
     raise unless @attempts > 0
@@ -624,6 +633,46 @@ class Manta
 
 
 
+  # Generates a signed URL which can be used by unauthenticated users to
+  # make a request to Manta at the given path. This is typically used to GET
+  # an object.
+  #
+  # expires is a Time object or integer representing time after epoch; this
+  # determines how long the signed URL will be valid for. The method is the HTTP
+  # method (:get, :put, :post, :delete) the signed URL is allowed to be used
+  # for. The path must start with /<user>/stor. Lastly, the optional args is an
+  # array containing pairs of query args that will be appended at the end of
+  # the URL.
+  #
+  # The returned URL is signed, and can be used either over HTTP or HTTPS until
+  # it reaches the expiry date.
+  def gen_signed_url(expires, method, path, args=[])
+    raise unless [:get, :put, :post, :delete].include? method
+    raise unless path =~ @obj_match
+
+    key_id = '/%s/keys/%s' % [@user, @key_id]
+
+    args.push([ 'expires',   expires.to_i ])
+    args.push([ 'algorithm', @digest_name ])
+    args.push([ 'keyId',     key_id       ])
+
+    encoded_args = args.sort.map do |key, val|
+      # to comply with RFC 3986
+      CGI.escape(key.to_s) + '=' + CGI.escape(val.to_s)
+    end.join('&')
+
+    method = method.to_s.upcase
+    host   = @host.split('/').last
+
+    plaintext = "#{method}\n#{host}\n#{obj_path}\n#{encoded_args}"
+    signature = @priv_key.sign(@digest, plaintext)
+    encoded_signature = CGI.escape(Base64.strict_encode64(signature))
+
+    host + path + '?' + encoded_args + '&signature=' + encoded_signature
+  end
+
+
+
   # Create some Manta error classes
   class MantaError < StandardError; end
   for class_name in ERROR_CLASSES
@@ -748,20 +797,10 @@ class Manta
   def gen_signature(data)
     raise unless data
 
-    if @priv_key.class == OpenSSL::PKey::RSA
-      digest = OpenSSL::Digest::SHA1.new
-      algo   = 'rsa-sha1'
-    elsif @priv_key.class == OpenSSL::PKey::DSA
-      digest = OpenSSL::Digest::DSS1.new
-      algo   = 'dsa-sha1'
-    else
-      raise UnsupportedKeyError
-    end
-
-    sig = @priv_key.sign(digest, data)
+    sig = @priv_key.sign(@digest, data)
     base64sig = Base64.strict_encode64(sig)
 
-    return HTTP_SIGNATURE % [@user, @key_id, algo, base64sig]
+    return HTTP_SIGNATURE % [@user, @key_id, @digest_name, base64sig]
   end
 
 
@@ -812,4 +851,6 @@ manta_client.get_job_output(path)
 manta_client.get_job_failures(path)
 manta_client.get_job_errors(path)
 manta_client.cancel_job(path)
+
+manta_client.gen_signed_url(Time.now + 500000, :get, '/marsell/stor/foo', [[ 'bar', 'beep' ]])
 #----------
