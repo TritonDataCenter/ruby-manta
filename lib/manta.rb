@@ -847,34 +847,3 @@ class Manta
   end
 end
 
-
-
-#----------
-#host = 'http://10.2.201.221'
-host = 'https://10.2.121.146'
-user = 'marsell'
-priv_key_data = File.read('/Users/tkukulje/.ssh/joyent')
-http_client, fingerprint, priv_key  = Manta.prepare(priv_key_data, :disable_ssl_verification => true)
-
-manta_client = Manta.new(http_client, host, user, fingerprint, priv_key)
-manta_client.put_object('/marsell/stor/foo', 'asdasd')
-manta_client.put_link('/marsell/stor/foo', '/marsell/stor/falafel')
-manta_client.get_object('/marsell/stor/foo')
-manta_client.delete_object('/marsell/stor/foo')
-manta_client.put_directory('/marsell/stor/quux')
-manta_client.list_directory('/marsell/stor')
-manta_client.delete_directory('/marsell/stor/quux')
-
-path, _  = manta_client.create_job({ phases: [{ exec: 'grep foo' }] })
-manta_client.get_job(path)
-manta_client.list_jobs(:all)
-manta_client.add_job_keys(path, ['/marsell/stor/foo', '/marsell/stor/falafel'])
-sleep(5)
-manta_client.get_job_input(path)
-manta_client.get_job_output(path)
-manta_client.get_job_failures(path)
-manta_client.get_job_errors(path)
-manta_client.cancel_job(path)
-
-manta_client.gen_signed_url(Time.now + 500000, :get, '/marsell/stor/foo', [[ 'bar', 'beep' ]])
-#----------
