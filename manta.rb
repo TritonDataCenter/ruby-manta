@@ -137,7 +137,8 @@ class Manta
   # Get an object from Manta at a given path, and checks it's uncorrupted.
   #
   # The path must start with /<user>/stor or /<user/public and point at an
-  # actual object.
+  # actual object. :head => true can optionally be passed in to do a HEAD
+  # instead of a GET.
   #
   # Returns the retrieved data along with received HTTP headers.
   #
@@ -149,10 +150,13 @@ class Manta
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
-      result = @client.get(url, nil, headers)
+      method = opts[:head] ? :head : :get
+      result = @client.send(method, url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
+	return true, result.headers if method == :head
+
         sent_md5     = result.headers['Content-MD5']
         received_md5 = OpenSSL::Digest::MD5.base64digest(result.body)
         raise CorruptResultError if sent_md5 != received_md5
@@ -221,7 +225,8 @@ class Manta
   # The path must start with /<user>/stor or /<user/public and point at an
   # actual directory. :limit optionally changes the maximum number of entries;
   # the default is 1000. If given :marker, an object path, returned directory
-  # entries will begin from that point.
+  # entries will begin from that point. :head => true can optionally be passed
+  # in to do a HEAD instead of a GET.
   #
   # Returns an array of hash objects, each object representing a directory
   # entry. Also returns the received HTTP headers.
@@ -245,12 +250,15 @@ class Manta
     end
 
     attempt(opts[:attempts]) do
-      result = @client.get(url, query_parameters, headers)
+      method = opts[:head] ? :head : :get
+      result = @client.send(method, url, query_parameters, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=directory'
+
+	return true, result.headers if method == :head
 
         json_chunks = result.body.split("\r\n")
 
@@ -360,6 +368,7 @@ class Manta
   # Gets various information about a job in Manta at a given path.
   #
   # The path must start with /<user>/jobs and point at an actual job.
+  # :head => true can optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns a hash with job information, along with received HTTP headers.
   #
@@ -371,11 +380,14 @@ class Manta
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
-      result = @client.get(url, nil, headers)
+      method = opts[:head] ? :head : :get
+      result = @client.send(method, url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'application/json'
+
+	return true, result.headers if method == :head
 
         job = JSON.parse(result.body)
         return job, result.headers
@@ -391,6 +403,7 @@ class Manta
   # path.
   #
   # The path must start with /<user>/jobs and point at an actual job.
+  # :head => true can optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns an array of hashes, each hash containing information about an
   # error; this information is best-effort by Manta, so it may not be complete.
@@ -404,12 +417,15 @@ class Manta
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
-      result = @client.get(url, nil, headers)
+      method = opts[:head] ? :head : :get
+      result = @client.send(method, url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=job-error'
+
+	return true, result.headers if method == :head
 
         json_chunks = result.body.split("\r\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
@@ -575,12 +591,16 @@ class Manta
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
-      result = @client.get(job_url(), { :state => state }, headers)
+#      method = opts[:head] ? :head : :get
+      method = :get # until added to Manta service
+      result = @client.send(method, job_url(), { :state => state }, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=job'
+
+	return true, result.headers if method == :head
 
         json_chunks      = result.body.split("\r\n")
         sent_num_entries = result.headers['Result-Set-Size']
@@ -664,7 +684,7 @@ class Manta
     method = method.to_s.upcase
     host   = @host.split('/').last
 
-    plaintext = "#{method}\n#{host}\n#{obj_path}\n#{encoded_args}"
+    plaintext = "#{method}\n#{host}\n#{path}\n#{encoded_args}"
     signature = @priv_key.sign(@digest, plaintext)
     encoded_signature = CGI.escape(Base64.strict_encode64(signature))
 
@@ -703,11 +723,15 @@ class Manta
     headers = gen_headers()
 
     attempt(opts[:attempts]) do
-      result = @client.get(url, nil, headers)
+      #method = opts[:head] ? :head : :get
+      method = :get # until added to Manta service
+      result = @client.send(method, url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'text/plain'
+
+	return true, result.headers if method == :head
 
         paths = result.body.split("\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
