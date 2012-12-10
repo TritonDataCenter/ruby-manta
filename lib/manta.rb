@@ -35,24 +35,22 @@ class Manta
   LIB_VERSION      = '1.0.0'
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
-  ERROR_CLASSES    = [ 'AuthSchemeError', 'AuthorizationError',
-                       'BadRequestError', 'ChecksumError',
-                       'ConcurrentRequestError', 'ContentLengthError',
-                       'InvalidArgumentError', 'InvalidAuthTokenError',
-                       'InvalidCredentialsError',
-                       'InvalidDurabilityLevelError', 'InvalidKeyIdError',
-                       'InvalidJobError', 'InvalidLinkError',
-                       'InvalidSignatureError', 'DirectoryDoesNotExistError',
-                       'DirectoryExistsError', 'DirectoryNotEmptyError',
-                       'DirectoryOperationError', 'JobNotFoundError',
-                       'JobStateError', 'KeyDoesNotExistError',
-                       'NotAcceptableError', 'NotEnoughSpaceError',
-                       'LinkNotFoundError', 'LinkNotObjectError',
-                       'LinkRequiredError', 'ParentNotDirectoryError',
-                       'PreSignedRequestError', 'RequestEntityTooLargeError',
-                       'ResourceNotFoundError', 'RootDirectoryError',
-                       'ServiceUnavailableError', 'SSLRequiredError',
-                       'UploadTimeoutError', 'UserDoesNotExistError',
+  ERROR_CLASSES    = [ 'AuthorizationFailed', 'AuthorizationSchemeNotAllowed',
+                       'ConcurrentRequest', 'ContentLengthRequired',
+                       'ContentMD5Mismatch', 'DirectoryDoesNotExist',
+                       'DirectoryNotEmpty', 'EntityAlreadyExists',
+                       'InternalError', 'InvalidAuthenticationToken',
+                       'InvalidDurabilityLevel', 'InvalidJob',
+                       'InvalidJobState', 'InvalidKeyId', 'InvalidLink',
+                       'InvalidQueryStringAuthentication', 'InvalidSignature',
+                       'JobNotFound', 'KeyDoesNotExist', 'LinkNotObject',
+                       'LocationRequired', 'NotAcceptable', 'NotEnoughSpace',
+                       'OperationNotAllowedOnDirectory',
+                       'OperationNotAllowedOnRootDirectory',
+                       'ParentNotDirectory', 'ResourceNotFound',
+                       'SecureTransportRequired', 'ServiceUnavailable',
+                       'SourceObjectNotFound', 'UploadTimeout',
+                       'UserDoesNotExist',
                        # and errors that are specific to this class:
                        'CorruptResultError', 'UnknownError',
                        'UnsupportedKeyError' ]
@@ -245,7 +243,7 @@ class Manta
 
     marker = opts[:marker]
     if marker
-      raise unless marker =~ @obj_match
+      raise unless marker.is_a? String
       query_parameters[:marker] = marker
     end
 
@@ -696,7 +694,7 @@ class Manta
   # Create some Manta error classes
   class MantaError < StandardError; end
   for class_name in ERROR_CLASSES
-    Object.const_set(class_name, Class.new(MantaError))
+    Manta.const_set(class_name, Class.new(MantaError))
   end
 
 
@@ -829,18 +827,18 @@ class Manta
 
 
 
-  # Raises an appropriate exception given the HTTP response. If a 400 is
+  # Raises an appropriate exception given the HTTP response. If a 40* is
   # returned, attempts to look up an appropriate error class and raise,
   # otherwise raises an UnknownError.
   def raise_error(result)
     raise unless result.is_a? HTTP::Message
 
-    if result.status != 400 || result.body == ''
-       raise UnknownError, result.status.to_s + ': ' + result.body
+    if result.status < 400 || result.status > 499 || result.body == ''
+      raise UnknownError, result.status.to_s + ': ' + result.body
     end
 
     err   = JSON.parse(result.body)
-    klass = self.const_get err['code']
+    klass = Manta.const_get err['code']
     raise klass, err['message']
   rescue NameError, JSON::ParserError
     raise UnknownError, result.status.to_s + ': ' + result.body
