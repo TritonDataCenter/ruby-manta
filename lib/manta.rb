@@ -59,12 +59,12 @@ class Manta
 
   # Initialize a Manta instance.
   def initialize(client, host, user, key_id, priv_key, opts = {})
-    raise unless client.is_a? HTTPClient
-    raise unless host =~ /^https{0,1}:\/\/.*[^\/]/
-    raise unless user.is_a?(String) && user.size > 0
-    raise unless key_id
-    raise unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
-                 priv_key.is_a?(OpenSSL::PKey::DSA)
+    raise ArgumentError unless client.is_a? HTTPClient
+    raise ArgumentError unless host =~ /^https{0,1}:\/\/.*[^\/]/
+    raise ArgumentError unless user.is_a?(String) && user.size > 0
+    raise ArgumentError unless key_id
+    raise ArgumentError unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
+                               priv_key.is_a?(OpenSSL::PKey::DSA)
 
     if priv_key.class == OpenSSL::PKey::RSA
       @digest      = OpenSSL::Digest::SHA1.new
@@ -75,7 +75,7 @@ class Manta
     end
 
     @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
-    raise unless @attempts > 0
+    raise ArgumentError unless @attempts > 0
 
     @client    = client
     @host      = host
@@ -111,13 +111,13 @@ class Manta
 
     durability_level = opts[:durability_level]
     if durability_level
-      raise unless durability_level > 0
+      raise ArgumentError unless durability_level > 0
       headers.push([ 'Durability-Level', durability_level ])
     end
 
     content_type = opts[:content_type]
     if content_type
-      raise unless content_type.is_a? String
+      raise ArgumentError unless content_type.is_a? String
       headers.push([ 'Content-Type', content_type ])
     end
 
@@ -238,12 +238,12 @@ class Manta
     query_parameters = {}
 
     limit = opts[:limit] || MAX_LIMIT
-    raise unless 0 < limit && limit <= MAX_LIMIT
+    raise ArgumentError unless 0 < limit && limit <= MAX_LIMIT
     query_parameters[:limit] = limit
 
     marker = opts[:marker]
     if marker
-      raise unless marker.is_a? String
+      raise ArgumentError unless marker.is_a? String
       query_parameters[:marker] = marker
     end
 
@@ -340,7 +340,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def create_job(job, opts = {})
-    raise unless job[:phases] || job['phases']
+    raise ArgumentError unless job[:phases] || job['phases']
 
     headers = gen_headers()
     headers.push([ 'Content-Type', 'application/json; type=job' ])
@@ -583,7 +583,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def list_jobs(state, opts = {})
-    raise unless [:all, :running, :done].include? state
+    raise ArgumentError unless [:all, :running, :done].include? state
     state = nil if state == :all
 
     headers = gen_headers()
@@ -665,8 +665,8 @@ class Manta
   # The returned URL is signed, and can be used either over HTTP or HTTPS until
   # it reaches the expiry date.
   def gen_signed_url(expires, method, path, args=[])
-    raise unless [:get, :put, :post, :delete].include? method
-    raise unless path =~ @obj_match
+    raise ArgumentError unless [:get, :put, :post, :delete].include? method
+    raise ArgumentError unless path =~ @obj_match
 
     key_id = '/%s/keys/%s' % [@user, @key_id]
 
@@ -715,7 +715,7 @@ class Manta
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_state_streams(type, path, opts)
-    raise unless [:in, :out, :fail].include? type 
+    raise ArgumentError unless [:in, :out, :fail].include? type
 
     url     = job_url(path, type.to_s)
     headers = gen_headers()
@@ -746,7 +746,7 @@ class Manta
 
   # Returns a full URL for a given path to an object.
   def obj_url(path)
-    raise unless path =~ @obj_match
+    raise ArgumentError unless path =~ @obj_match
     @host + path
   end
 
@@ -757,7 +757,7 @@ class Manta
     path = if args.size == 0
              @job_base
            else
-             raise unless args.first =~ @job_match
+             raise ArgumentError unless args.first =~ @job_match
              args.join('/')
            end
 
@@ -771,7 +771,7 @@ class Manta
   # for an exponentially-increasing number of seconds between retries.
   def attempt(tries, &blk)
     if tries
-      raise unless tries > 0
+      raise ArgumentError unless tries > 0
     else
       tries ||= @attempts
     end
@@ -817,7 +817,7 @@ class Manta
   # Given a chunk of data, creates an HTTP signature which the Manta service
   # understands and uses for authentication.
   def gen_signature(data)
-    raise unless data
+    raise ArgumentError unless data
 
     sig = @priv_key.sign(@digest, data)
     base64sig = Base64.strict_encode64(sig)
