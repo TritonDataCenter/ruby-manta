@@ -58,11 +58,11 @@ class Manta
 
 
   # Initialize a Manta instance.
-  def initialize(client, host, user, key_id, priv_key, opts = {})
+  def initialize(client, host, user, fingerprint, priv_key, opts = {})
     raise ArgumentError unless client.is_a? HTTPClient
     raise ArgumentError unless host =~ /^https{0,1}:\/\/.*[^\/]/
     raise ArgumentError unless user.is_a?(String) && user.size > 0
-    raise ArgumentError unless key_id
+    raise ArgumentError unless fingerprint
     raise ArgumentError unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
                                priv_key.is_a?(OpenSSL::PKey::DSA)
 
@@ -77,11 +77,11 @@ class Manta
     @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
     raise ArgumentError unless @attempts > 0
 
-    @client    = client
-    @host      = host
-    @user      = user
-    @key_id    = key_id
-    @priv_key  = priv_key
+    @client      = client
+    @host        = host
+    @user        = user
+    @fingerprint = fingerprint
+    @priv_key    = priv_key
 
     @obj_match = Regexp.new('^/' + user + '/(?:stor|public)')
     @job_match = Regexp.new('^/' + user + '/jobs/.+')
@@ -668,7 +668,7 @@ class Manta
     raise ArgumentError unless [:get, :put, :post, :delete].include? method
     raise ArgumentError unless path =~ @obj_match
 
-    key_id = '/%s/keys/%s' % [@user, @key_id]
+    key_id = '/%s/keys/%s' % [@user, @fingerprint]
 
     args.push([ 'expires',   expires.to_i ])
     args.push([ 'algorithm', @digest_name ])
@@ -822,7 +822,7 @@ class Manta
     sig = @priv_key.sign(@digest, data)
     base64sig = Base64.strict_encode64(sig)
 
-    return HTTP_SIGNATURE % [@user, @key_id, @digest_name, base64sig]
+    return HTTP_SIGNATURE % [@user, @fingerprint, @digest_name, base64sig]
   end
 
 
