@@ -29,8 +29,7 @@ class TestManta < MiniTest::Unit::TestCase
 
     teardown() 
 
-    result, _ = @@client.put_directory(@@test_dir_path)
-    assert_equal result, true
+    @@client.put_directory(@@test_dir_path)
   end
 
 
@@ -149,12 +148,9 @@ class TestManta < MiniTest::Unit::TestCase
     rescue Manta::DirectoryNotEmpty
     end
 
-    result, _ = @@client.delete_directory(@@test_dir_path + '/dir1')
-    assert_equal result, true
-    result, _ = @@client.delete_object(@@test_dir_path + '/obj1')
-    assert_equal result, true
-    result, _ = @@client.delete_object(@@test_dir_path + '/obj2')
-    assert_equal result, true
+    @@client.delete_directory(@@test_dir_path + '/dir1')
+    @@client.delete_object(@@test_dir_path + '/obj1')
+    @@client.delete_object(@@test_dir_path + '/obj2')
 
     result, headers = @@client.delete_directory(@@test_dir_path)
     assert_equal result, true
@@ -184,10 +180,9 @@ class TestManta < MiniTest::Unit::TestCase
     assert_equal result, 'foo-data'
     assert_equal headers['Content-Type'], 'application/x-www-form-urlencoded'
 
-    result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
-                                          :content_type     => 'application/wacky',
-                                          :durability_level => 3)
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+                        :content_type     => 'application/wacky',
+                        :durability_level => 3)
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1')
     assert_equal result, 'bar-data'
@@ -224,8 +219,7 @@ class TestManta < MiniTest::Unit::TestCase
 
 
   def test_public
-    result, _ = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 
     test_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
     host = ENV['HOST'].gsub('https', 'http')
@@ -240,8 +234,7 @@ class TestManta < MiniTest::Unit::TestCase
 
 
   def test_signed_urls
-    result, _ = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 
     url = @@client.gen_signed_url(Time.now + 500000, :get,
                                   @@test_dir_path + '/obj1')
@@ -260,16 +253,14 @@ class TestManta < MiniTest::Unit::TestCase
     rescue Manta::SourceObjectNotFound
     end
 
-    result, _ = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 
     result, headers = @@client.put_link(@@test_dir_path + '/obj1',
                                         @@test_dir_path + '/obj2')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, _ = @@client.put_object(@@test_dir_path + '/obj1', 'bar-data')
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data')
    
     result, _ = @@client.get_object(@@test_dir_path + '/obj1')
     assert_equal result, 'bar-data'
@@ -289,8 +280,7 @@ class TestManta < MiniTest::Unit::TestCase
 
     result.each do |entry|
       path = '/%s/jobs/%s' % [ @@user, entry['id'] ]
-      result, _ = @@client.cancel_job(path)
-      assert_equal result, true
+      @@client.cancel_job(path)
     end
 
     begin
@@ -351,11 +341,8 @@ class TestManta < MiniTest::Unit::TestCase
     assert_equal job['cancelled'], false
     assert_equal job['timeDone' ], nil
 
-    result, _ = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-    assert_equal result, true
-
-    result, _ = @@client.put_object(@@test_dir_path + '/obj2', 'bar-data')
-    assert_equal result, true
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
+    @@client.put_object(@@test_dir_path + '/obj2', 'bar-data')
 
     obj_key_paths = [@@test_dir_path + '/obj1',
                      @@test_dir_path + '/obj2',
