@@ -480,8 +480,7 @@ class Manta
     headers = gen_headers()
     headers.push([ 'Content-Type', 'text/plain' ])
 
-    data = obj_paths.map { |p| '/' + @user + '/stor' + p }.
-                     join("\n")
+    data = obj_paths.join("\n")
 
     attempt(opts[:attempts]) do
       result = @client.post(url, data, headers)
