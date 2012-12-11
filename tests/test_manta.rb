@@ -21,8 +21,8 @@ class TestManta < MiniTest::Unit::TestCase
       end
 
       priv_key_data = File.read(key)
-      http_client, fingerprint, priv_key = Manta.prepare(priv_key_data, :disable_ssl_verification => true)
-      @@client = Manta.new(http_client, host, @@user, fingerprint, priv_key)
+      @@client = Manta.new(host, @@user, priv_key_data,
+			   :disable_ssl_verification => true)
 
       @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end

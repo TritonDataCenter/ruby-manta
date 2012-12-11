@@ -58,30 +58,45 @@ class Manta
 
 
   # Initialize a Manta instance.
-  def initialize(client, host, user, fingerprint, priv_key, opts = {})
-    raise ArgumentError unless client.is_a? HTTPClient
+  #
+  # priv_key_data is data read directly from an SSH private key (i.e. RFC 4716
+  # format). The method can also accept several optional args: :connect_timeout,
+  # :send_timeout, :receive_timeout, :disable_ssl_verification and :attempts.
+  # The timeouts are in seconds, and :attempts determines the default number of
+  # attempts each method will make upon receiving recoverable errors.
+  #
+  # Will throw an exception if given a key whose format it doesn't understand.
+  def initialize(host, user, priv_key_data, opts = {})
     raise ArgumentError unless host =~ /^https{0,1}:\/\/.*[^\/]/
     raise ArgumentError unless user.is_a?(String) && user.size > 0
-    raise ArgumentError unless fingerprint
-    raise ArgumentError unless priv_key.is_a?(OpenSSL::PKey::RSA) ||
-                               priv_key.is_a?(OpenSSL::PKey::DSA)
 
-    if priv_key.class == OpenSSL::PKey::RSA
-      @digest      = OpenSSL::Digest::SHA1.new
-      @digest_name = 'rsa-sha1'
-    else
-      @digest      = OpenSSL::Digest::DSS1.new
-      @digest_name = 'dsa-sha1'
-    end
+    @host        = host
+    @user        = user
 
     @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
     raise ArgumentError unless @attempts > 0
 
-    @client      = client
-    @host        = host
-    @user        = user
-    @fingerprint = fingerprint
-    @priv_key    = priv_key
+    if priv_key_data =~ /BEGIN RSA/
+      @digest      = OpenSSL::Digest::SHA1.new
+      @digest_name = 'rsa-sha1'
+      algorithm    = OpenSSL::PKey::RSA
+    elsif priv_key_data =~ /BEGIN DSA/
+      @digest      = OpenSSL::Digest::DSS1.new
+      @digest_name = 'dsa-sha1'
+      algorithm    = OpenSSL::PKey::DSA
+    else
+      raise UnsupportedKeyError
+    end
+
+    @priv_key    = algorithm.new(priv_key_data)
+    @fingerprint = OpenSSL::Digest::MD5.hexdigest(@priv_key.to_blob).
+                                        scan(/../).join(':')
+
+    @client = HTTPClient.new
+    @client.connect_timeout = opts[:connect_timeout] || DEFAULT_CONNECT_TIMEOUT
+    @client.send_timeout    = opts[:send_timeout   ] || DEFAULT_SEND_TIMEOUT
+    @client.receive_timeout = opts[:receive_timeout] || DEFAULT_RECEIVE_TIMEOUT
+    @client.ssl_config.verify_mode = nil if opts[:disable_ssl_verification]
 
     @obj_match     = Regexp.new('^/' + user + '/(?:stor|public)')
     @job_match     = Regexp.new('^/' + user + '/jobs/.+')
@@ -612,42 +627,6 @@ class Manta
 
       raise_error(result)
     end
-  end
-
-
-
-  # Processes a private key and returns data useful for creating multiple
-  # Manta (the class) instances. 
-  #
-  # priv_key_data is data read directly from an SSH private key (i.e. RFC 4716
-  # format). It can also accept several optional args: :connect_timeout,
-  # :send_timeout, :receive_timeout, and :disable_ssl_verification. The
-  # timeouts are in seconds. The options affect all users of the returned
-  # HTTP client object.
-  #
-  # Returns an HTTP client, fingerprint, and private key.
-  #
-  # Will throw an exception if given a key whose format it doesn't understand.
-  def self.prepare(priv_key_data, opts = {})
-    algo = if priv_key_data =~ /BEGIN RSA/
-             OpenSSL::PKey::RSA
-           elsif priv_key_data =~ /BEGIN DSA/
-             OpenSSL::PKey::DSA
-           else
-             raise UnsupportedKeyError
-           end
-
-    priv_key    = algo.new(priv_key_data)
-    fingerprint = OpenSSL::Digest::MD5.hexdigest(priv_key.to_blob).
-                                       scan(/../).join(':')
-
-    client = HTTPClient.new
-    client.connect_timeout = opts[:connect_timeout] || DEFAULT_CONNECT_TIMEOUT
-    client.send_timeout    = opts[:send_timeout   ] || DEFAULT_SEND_TIMEOUT
-    client.receive_timeout = opts[:receive_timeout] || DEFAULT_RECEIVE_TIMEOUT
-    client.ssl_config.verify_mode = nil if opts[:disable_ssl_verification]
-
-    return client, fingerprint, priv_key
   end
 
 
