@@ -83,8 +83,10 @@ class Manta
     @fingerprint = fingerprint
     @priv_key    = priv_key
 
-    @obj_match = Regexp.new('^/' + user + '/(?:stor|public)')
-    @job_match = Regexp.new('^/' + user + '/jobs/.+')
+    @obj_match     = Regexp.new('^/' + user + '/(?:stor|public)')
+    @job_match     = Regexp.new('^/' + user + '/jobs/.+')
+    @job_obj_match = Regexp.new('^/' + user + '/jobs/.+/stor/' +
+                                user + '/stor')
     @job_base  = '/' + user + '/jobs'
   end
 
@@ -745,7 +747,8 @@ class Manta
 
   # Returns a full URL for a given path to an object.
   def obj_url(path)
-    raise ArgumentError unless path =~ @obj_match
+    raise ArgumentError unless path =~ @obj_match ||
+                               path =~ @job_obj_match
     @host + path
   end
 
