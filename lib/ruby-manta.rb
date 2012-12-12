@@ -26,7 +26,7 @@ require 'cgi'
 
 
 
-class Manta
+class MantaClient
   DEFAULT_ATTEMPTS        = 3
   DEFAULT_CONNECT_TIMEOUT = 5
   DEFAULT_SEND_TIMEOUT    = 60
@@ -59,7 +59,7 @@ class Manta
 
 
 
-  # Initialize a Manta instance.
+  # Initialize a MantaClient instance.
   #
   # priv_key_data is data read directly from an SSH private key (i.e. RFC 4716
   # format). The method can also accept several optional args: :connect_timeout,
@@ -670,9 +670,9 @@ class Manta
 
 
   # Create some Manta error classes
-  class MantaError < StandardError; end
+  class MantaClientError < StandardError; end
   for class_name in ERROR_CLASSES
-    Manta.const_set(class_name, Class.new(MantaError))
+    MantaClient.const_set(class_name, Class.new(MantaClientError))
   end
 
 
@@ -817,7 +817,7 @@ class Manta
     end
 
     err   = JSON.parse(result.body)
-    klass = Manta.const_get err['code']
+    klass = MantaClient.const_get err['code']
     raise klass, err['message']
   rescue NameError, JSON::ParserError
     raise UnknownError, result.status.to_s + ': ' + result.body
