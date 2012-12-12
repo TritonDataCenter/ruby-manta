@@ -408,7 +408,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert headers.is_a? Hash
 
     result, _ = @@client.get_object(result.first)
-#    assert_equal result, 'foo-data'
+    assert_equal result, "foo-data\n"
 
     result, headers = @@client.get_job_failures(path)
     assert_equal result, obj_key_paths.slice(1, 2)
