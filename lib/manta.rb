@@ -171,7 +171,7 @@ class Manta
 	return true, result.headers if method == :head
 
         sent_md5     = result.headers['Content-MD5']
-        received_md5 = OpenSSL::Digest::MD5.base64digest(result.body)
+        received_md5 = base64digest(result.body)
         raise CorruptResultError if sent_md5 != received_md5
 
         return result.body, result.headers
@@ -662,7 +662,7 @@ class Manta
 
     plaintext = "#{method}\n#{host}\n#{path}\n#{encoded_args}"
     signature = @priv_key.sign(@digest, plaintext)
-    encoded_signature = CGI.escape(Base64.strict_encode64(signature))
+    encoded_signature = CGI.escape(strict_encode64(signature))
 
     host + path + '?' + encoded_args + '&signature=' + encoded_signature
   end
@@ -784,7 +784,7 @@ class Manta
                [ 'Accept-Version', '~1.0'     ]]
 
     if data
-      md5 = OpenSSL::Digest::MD5.base64digest(data)
+      md5 = base64digest(data)
       headers.push([ 'Content-MD5', md5 ])
     end
 
@@ -799,7 +799,7 @@ class Manta
     raise ArgumentError unless data
 
     sig = @priv_key.sign(@digest, data)
-    base64sig = Base64.strict_encode64(sig)
+    base64sig = strict_encode64(sig)
 
     return HTTP_SIGNATURE % [@user, @fingerprint, @digest_name, base64sig]
   end
@@ -821,6 +821,21 @@ class Manta
     raise klass, err['message']
   rescue NameError, JSON::ParserError
     raise UnknownError, result.status.to_s + ': ' + result.body
+  end
+
+
+
+  # Ruby 1.8 is missing 1.9's strict_encode64, so we have this instead
+  def strict_encode64(str)
+    Base64.encode64(str).tr("\n",'')
+  end
+
+
+
+  # Ruby 1.8 is missing 1.9's base64digest, so we have this instead
+  def base64digest(str)
+    md5 = OpenSSL::Digest::MD5.digest(str)
+    strict_encode64(md5)
   end
 end
 

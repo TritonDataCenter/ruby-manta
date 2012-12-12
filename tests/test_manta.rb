@@ -1,3 +1,4 @@
+require 'rubygems'  # for 1.8 compat
 require 'minitest/autorun'
 require 'httpclient'
 require File.expand_path('../../lib/manta', __FILE__)
@@ -300,7 +301,7 @@ class TestManta < MiniTest::Unit::TestCase
     assert_equal result, []
     assert headers.is_a? Hash
 
-    path, headers  = @@client.create_job({ phases: [{ exec: 'grep foo' }] })
+    path, headers  = @@client.create_job({ :phases => [{ :exec => 'grep foo' }] })
     assert path =~ Regexp.new('^/' + @@user + '/jobs/.+')
     assert headers.is_a? Hash
 
@@ -308,7 +309,7 @@ class TestManta < MiniTest::Unit::TestCase
     assert_equal result, true
     assert headers.is_a? Hash
 
-    path, _ = @@client.create_job({ phases: [{ exec: 'grep foo' }] })
+    path, _ = @@client.create_job({ :phases => [{ :exec => 'grep foo' }] })
 
     result, _ = @@client.list_jobs(:all)
     result.each do |job|
