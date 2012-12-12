@@ -35,6 +35,8 @@ class Manta
   LIB_VERSION      = '1.0.0'
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
+  OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public)(?:/|$)')
+  JOB_PATH_REGEX   = Regexp.new('^/.+/jobs(?:/|$)')
   ERROR_CLASSES    = [ 'AuthorizationFailed', 'AuthorizationSchemeNotAllowed',
                        'ConcurrentRequest', 'ContentLengthRequired',
                        'ContentMD5Mismatch', 'DirectoryDoesNotExist',
@@ -98,10 +100,6 @@ class Manta
     @client.receive_timeout = opts[:receive_timeout] || DEFAULT_RECEIVE_TIMEOUT
     @client.ssl_config.verify_mode = nil if opts[:disable_ssl_verification]
 
-    @obj_match     = Regexp.new('^/' + user + '/(?:stor|public)')
-    @job_match     = Regexp.new('^/' + user + '/jobs/.+')
-    @job_obj_match = Regexp.new('^/' + user + '/jobs/.+/stor/' +
-                                user + '/stor')
     @job_base  = '/' + user + '/jobs'
   end
 
@@ -646,7 +644,7 @@ class Manta
   # it reaches the expiry date.
   def gen_signed_url(expires, method, path, args=[])
     raise ArgumentError unless [:get, :put, :post, :delete].include? method
-    raise ArgumentError unless path =~ @obj_match
+    raise ArgumentError unless path =~ OBJ_PATH_REGEX
 
     key_id = '/%s/keys/%s' % [@user, @fingerprint]
 
@@ -726,8 +724,8 @@ class Manta
 
   # Returns a full URL for a given path to an object.
   def obj_url(path)
-    raise ArgumentError unless path =~ @obj_match ||
-                               path =~ @job_obj_match
+    raise ArgumentError unless path =~ OBJ_PATH_REGEX
+
     @host + path
   end
 
@@ -738,7 +736,7 @@ class Manta
     path = if args.size == 0
              @job_base
            else
-             raise ArgumentError unless args.first =~ @job_match
+             raise ArgumentError unless args.first =~ JOB_PATH_REGEX
              args.join('/')
            end
 

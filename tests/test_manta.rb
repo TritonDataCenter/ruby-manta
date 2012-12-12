@@ -60,25 +60,32 @@ class TestManta < MiniTest::Unit::TestCase
       end
     end
 
-    bad_path = "/not-me/stor/ruby-manta-test"
+    good_obj_path = "/#{@@user}/stor/ruby-manta-test"
+    bad_obj_path  = "/#{@@user}/stora/ruby-manta-test"
 
-    check { @@client.put_directory(bad_path)      }
-    check { @@client.put_object(bad_path, 'asd')  }
-    check { @@client.get_object(bad_path)         }
-    check { @@client.delete_object(bad_path)      }
-    check { @@client.put_directory(bad_path)      }
-    check { @@client.list_directory(bad_path)     }
-    check { @@client.delete_directory(bad_path)   }
-    check { @@client.put_link(bad_path, bad_path) }
-    check { @@client.get_job(bad_path)            }
-    check { @@client.get_job_errors(bad_path)     }
-    check { @@client.cancel_job(bad_path)         }
-    check { @@client.add_job_keys(bad_path, [bad_path]) }
-    check { @@client.end_job_input(bad_path)      }
-    check { @@client.get_job_input(bad_path)      }
-    check { @@client.get_job_output(bad_path)     }
-    check { @@client.get_job_failures(bad_path)   }
-    check { @@client.gen_signed_url(Time.now, :get, bad_path) }
+    check { @@client.put_directory(bad_obj_path)            }
+    check { @@client.put_object(bad_obj_path, 'asd')        }
+    check { @@client.get_object(bad_obj_path)               }
+    check { @@client.delete_object(bad_obj_path)            }
+    check { @@client.put_directory(bad_obj_path)            }
+    check { @@client.list_directory(bad_obj_path)           }
+    check { @@client.delete_directory(bad_obj_path)         }
+    check { @@client.put_link(good_obj_path, bad_obj_path)  }
+    check { @@client.put_link(bad_obj_path,  good_obj_path) }
+
+    good_job_path = "/#{@@user}/job/ruby-manta-test"
+    bad_job_path  = "/#{@@user}/joba/ruby-manta-test"
+
+    check { @@client.get_job(bad_job_path)                  }
+    check { @@client.get_job_errors(bad_job_path)           }
+    check { @@client.cancel_job(bad_job_path)               }
+    check { @@client.add_job_keys(bad_job_path,  [good_obj_path]) }
+    check { @@client.add_job_keys(good_job_path, [bad_obj_path])  }
+    check { @@client.end_job_input(bad_job_path)            }
+    check { @@client.get_job_input(bad_job_path)            }
+    check { @@client.get_job_output(bad_job_path)           }
+    check { @@client.get_job_failures(bad_job_path)         }
+    check { @@client.gen_signed_url(Time.now, :get, bad_obj_path) }
   end
 
 
