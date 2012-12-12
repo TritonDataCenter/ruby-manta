@@ -13,7 +13,9 @@ Gem::Specification.new do |s|
   s.add_dependency('httpclient', '>= 2.3.0.1')
 
   s.files       = ['LICENSE',
-                   'README',
+                   'README.md',
+		   'ruby-manta.gemspec',
+		   'example.rb',
                    'lib/ruby-manta.rb',
                    'tests/test_ruby-manta.rb']
 end
