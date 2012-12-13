@@ -226,10 +226,10 @@ When that happens, try again after a minute or three.
 
 
 
-Constructor
------------
+initialize(manta_host, user, priv_key, _options_)
+-------------------------------------------------
 
-Initialize a MantaClient instance.
+Construct a new MantaClient instance.
 
 priv_key_data is data read directly from an SSH private key (i.e. RFC 4716
 format). The method can also accept several optional args: :connect_timeout,
@@ -239,9 +239,19 @@ attempts each method will make upon receiving recoverable errors.
 
 Will throw an exception if given a key whose format it doesn't understand.
 
+MantaClient is thread-safe (in theory, anyway), and uses an HTTP client that
+pools connections. You should only need to initialize a single MantaClient
+object per process.
+
+Example:
+
+    priv_key_data = File.read('/home/john/.ssh/john')
+    client = MantaClient.new('https://manta.joyentcloud.com', 'john',
+                             priv_key_data, :disable_ssl_verification => true)
 
 
-put_object(object path, file data, <options>)
+
+put_object(object path, file data, _options_)
 ---------------------------------------------
 
 Uploads object data to Manta to the given path, along with a computed MD5
@@ -266,7 +276,7 @@ Examples:
 
 
 
-get_object(object path, <options>)
+get_object(object path, _options_)
 ----------------------------------
 
 Get an object from Manta at a given path, and checks it's uncorrupted.
@@ -284,7 +294,7 @@ Examples:
 
 
 
-delete_object(object path, <options>)
+delete_object(object path, _options_)
 -------------------------------------
 
 Deletes an object off Manta at a given path.
@@ -301,7 +311,7 @@ Examples:
 
 
 
-put_directory(dir path, <options>)
+put_directory(dir path, _options_)
 ----------------------------------
 
 Creates a directory on Manta at a given path.
@@ -314,7 +324,7 @@ Example:
 
 
 
-list_directory(dir_path, <options>)
+list_directory(dir_path, _options_)
 -----------------------------------
 
 Gets a lexicographically sorted directory listing on Manta at a given path,
@@ -339,7 +349,7 @@ Examples:
 
 
 
-delete_directory(dir_path, <options>)
+delete_directory(dir_path, _options_)
 -------------------------------------
 
 Removes a directory from Manta at a given path.
@@ -355,7 +365,7 @@ Example:
 
 
 
-put_link(orig_path, link_path, <options>)
+put_link(orig_path, link_path, _options_)
 -----------------------------------------
 
 Creates a link from on object in Manta at a given path to a different path.
@@ -375,7 +385,7 @@ Example:
 
 
 
-create_job(job_description, <options>)
+create_job(job_description, _options_)
 --------------------------------------
 
 Creates a job in Manta.
@@ -394,7 +404,7 @@ Example:
 
 
 
-get_job(job_path, <options>)
+get_job(job_path, _options_)
 ----------------------------
 
 Gets various information about a job in Manta at a given job path.
@@ -411,7 +421,7 @@ Example:
 
 
 
-get_job_errors(job_path, <options>)
+get_job_errors(job_path, _options_)
 -----------------------------------
 
 Gets errors that occured during the execution of a job in Manta at a given
@@ -433,7 +443,7 @@ Examples:
 
 
 
-cancel_job(job_path, <options>)
+cancel_job(job_path, _options_)
 -------------------------------
 
 Cancels a running job in Manta at a given path.
@@ -448,7 +458,7 @@ Example:
 
 
 
-add_job_keys(job_path, object_keys, <options>)
+add_job_keys(job_path, object_keys, _options_)
 ----------------------------------------------
 
 Adds objects for a running job in Manta to process.
@@ -466,7 +476,7 @@ Example:
 
 
 
-end_job_input(job_path, <options>)
+end_job_input(job_path, _options_)
 ----------------------------------
 
 Inform Manta that no more objects will be added for processing by a job,
@@ -483,7 +493,7 @@ Example:
 
 
 
-get_job_input(job_path, <options>)
+get_job_input(job_path, _options_)
 ----------------------------------
 
 Get a list of objects that have been given to a Manta job for processing.
@@ -499,7 +509,7 @@ Example:
 
 
 
-get_job_output(job_path, <options>)
+get_job_output(job_path, _options_)
 -----------------------------------
 
 Get a list of objects that contain the intermediate and/or final results of a
@@ -516,7 +526,7 @@ Example:
 
 
 
-get_job_failures(job_path, <options>)
+get_job_failures(job_path, _options_)
 -------------------------------------
 
 Get a list of objects that had failures during processing in a Manta job.
@@ -532,7 +542,7 @@ Example:
 
 
 
-list_jobs(state, <options>)
+list_jobs(state, _options_)
 ---------------------------
 
 Get a list of Manta jobs.
@@ -551,7 +561,7 @@ Example:
 
 
 
-gen_signed_url(expiry_date, http_method, path, query_args)
+gen_signed_url(expiry_date, http_method, path, _query_args_)
 ----------------------------------------------------------
 
 Generates a signed URL which can be used by unauthenticated users to
