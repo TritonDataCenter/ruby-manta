@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'ruby-manta'
 
 # You'll need to provide these four environment variables to run this
@@ -23,7 +24,10 @@ client.put_directory(dir_path)
 file_paths = Dir[upload_dir + '/*'].select { |p| File.file? p }
 file_paths.each do |file_path|
   file_name = File.basename(file_path)
-  file_data = File.read(file_path)
+  # Be careful about binary files and file encodings in Ruby 1.9. If you don't
+  # use ASCII-8BIT (forced by 'rb' below), expect timeouts while PUTing an
+  # object.
+  file_data = File.open(file_path, 'rb') { |f| f.read }
   client.put_object(dir_path + '/' + file_name, file_data)
 end
 
