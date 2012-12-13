@@ -237,9 +237,9 @@ class MantaClient
   #
   # The path must start with /<user>/stor or /<user/public and point at an
   # actual directory. :limit optionally changes the maximum number of entries;
-  # the default is 1000. If given :marker, an object path, returned directory
-  # entries will begin from that point. :head => true can optionally be passed
-  # in to do a HEAD instead of a GET.
+  # the default is 1000. If given :marker, an object name in the directory,
+  # returned directory entries will begin from that point. :head => true can
+  # optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns an array of hash objects, each object representing a directory
   # entry. Also returns the received HTTP headers.
@@ -326,10 +326,10 @@ class MantaClient
   # If there was an unrecoverable error, throws an exception. On connection or
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
-  def put_link(dir_path, link_path, opts = {})
+  def put_link(orig_path, link_path, opts = {})
     headers = gen_headers()
     headers.push([ 'Content-Type', 'application/json; type=link' ],
-                 [ 'Location',     obj_url(dir_path)             ])
+                 [ 'Location',     obj_url(orig_path)            ])
 
     attempt(opts[:attempts]) do
       result = @client.put(obj_url(link_path), nil, headers)
@@ -459,7 +459,7 @@ class MantaClient
   #
   # The path must start with /<user>/jobs and point at an actual job.
   #
-  # Returns a hash with job information, along with received HTTP headers.
+  # Returns true, along with received HTTP headers.
   #
   # If there was an unrecoverable error, throws an exception. On connection or
   # corruption errors, more attempts will be made; the number of attempts can
