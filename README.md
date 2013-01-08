@@ -33,6 +33,25 @@ standard UNIX environment can be used.
 
 
 
+Streaming Large Objects
+-----------------------
+
+One important limitation of ruby-manta is that it is not designed to handle
+large objects. Specifically, when used to upload or download a large object,
+that entire object will be loaded into Ruby's heap. If you're trying to move
+multi-gigabyte objects using a sub-gigabyte VPS or zone, that won't work.
+This leads to the following observations:
+
+* don't upload or download large objects using ruby-manta
+* if you must move large objects, consider compressing them first
+* if they're still large, consider using node-manta instead.
+
+Unlike ruby-manta, node-manta (the Node.js API for Manta) streams, so object
+size is not a limitation. If you intend to work with large objects, use
+node-manta instead.
+
+
+
 Example
 -------
 
