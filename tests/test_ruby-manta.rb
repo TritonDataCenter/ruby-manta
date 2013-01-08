@@ -313,7 +313,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     result, _ = @@client.list_jobs(:all)
     result.each do |job|
-      assert ['done', 'running'].include? job['state']
+      assert ['done', 'running', 'queued'].include? job['state']
       assert job['id'] =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
       assert job['name'       ].is_a? String
       assert job['phases'     ].is_a? Array
