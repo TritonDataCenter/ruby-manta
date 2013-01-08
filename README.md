@@ -48,7 +48,8 @@ This leads to the following observations:
 
 Unlike ruby-manta, node-manta (the Node.js API for Manta) streams, so object
 size is not a limitation. If you intend to work with large objects, use
-node-manta instead.
+node-manta instead. An slight alternative is to use node-manta for uploading
+and downloading objects, and ruby-manta for everything else.
 
 
 
