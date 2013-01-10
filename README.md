@@ -246,6 +246,25 @@ When that happens, try again after a minute or three.
 
 
 
+Conditional requests
+--------------------
+
+Operations on objects support conditional requests. Pass in as an optional
+argument :if_modified_since, :if_unmodified_since, :if_match, or :if_none_match
+to the method. For example, to conditionally get an object with etag
+"e346dce6-22f3-4ed5-8191-6b059b3684de":
+
+    client.get_object(path, :if_match => 'e346dce6-22f3-4ed5-8191-6b059b3684de')
+
+You can get the Etag or Last-Modified from the headers returned by most
+methods.
+
+The methods follow the RFC2616 semantics in the following manner: where 304
+would return instead of data, a true boolean returns instead. Where 412 would
+occur, a MantaClient::PreconditionFailed is thrown.
+
+
+
 initialize(manta_host, user, priv_key, _options_)
 -------------------------------------------------
 

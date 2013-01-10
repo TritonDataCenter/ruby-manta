@@ -49,10 +49,10 @@ class MantaClient
                        'LocationRequired', 'NotAcceptable', 'NotEnoughSpace',
                        'OperationNotAllowedOnDirectory',
                        'OperationNotAllowedOnRootDirectory',
-                       'ParentNotDirectory', 'ResourceNotFound',
-                       'SecureTransportRequired', 'ServiceUnavailable',
-                       'SourceObjectNotFound', 'UploadTimeout',
-                       'UserDoesNotExist',
+                       'ParentNotDirectory', 'PreconditionFailed',
+		       'ResourceNotFound', 'SecureTransportRequired',
+		       'ServiceUnavailable', 'SourceObjectNotFound',
+		       'UploadTimeout', 'UserDoesNotExist',
                        # and errors that are specific to this class:
                        'CorruptResultError', 'UnknownError',
                        'UnsupportedKeyError' ]
@@ -121,8 +121,10 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def put_object(obj_path, data, opts = {})
-    url     = obj_url(obj_path)
-    headers = gen_headers(data)
+    url = obj_url(obj_path)
+
+    opts[:data] = data
+    headers = gen_headers(opts)
 
     durability_level = opts[:durability_level]
     if durability_level
@@ -140,7 +142,7 @@ class MantaClient
       result = @client.put(url, data, headers)
       raise unless result.is_a? HTTP::Message
 
-      return true, result.headers if result.status == 204
+      return true, result.headers if [204, 304].include? result.status
       raise_error(result)
     end
   end
@@ -160,7 +162,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def get_object(obj_path, opts = {})
     url     = obj_url(obj_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       method = opts[:head] ? :head : :get
@@ -175,6 +177,8 @@ class MantaClient
         raise CorruptResultError if sent_md5 != received_md5
 
         return result.body, result.headers
+      elsif result.status == 304
+	return true, result.headers
       end
 
       raise_error(result)
@@ -195,7 +199,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def delete_object(obj_path, opts = {})
     url     = obj_url(obj_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.delete(url, nil, headers)
@@ -219,7 +223,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def put_directory(dir_path, opts = {})
     url = obj_url(dir_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'application/json; type=directory' ])
 
     attempt(opts[:attempts]) do
@@ -249,7 +253,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def list_directory(dir_path, opts = {})
     url     = obj_url(dir_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
     query_parameters = {}
 
     limit = opts[:limit] || MAX_LIMIT
@@ -304,7 +308,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def delete_directory(dir_path, opts = {})
     url     = obj_url(dir_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.delete(url, nil, headers)
@@ -327,7 +331,7 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def put_link(orig_path, link_path, opts = {})
-    headers = gen_headers()
+    headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'application/json; type=link' ],
                  [ 'Location',     obj_url(orig_path)            ])
 
@@ -357,7 +361,7 @@ class MantaClient
   def create_job(job, opts = {})
     raise ArgumentError unless job[:phases] || job['phases']
 
-    headers = gen_headers()
+    headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'application/json; type=job' ])
     data = job.to_json
 
@@ -390,7 +394,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def get_job(job_path, opts = {})
     url     = job_url(job_path)
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       method = opts[:head] ? :head : :get
@@ -427,7 +431,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def get_job_errors(job_path, opts = {})
     url     = job_url(job_path, '/err')
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       method = opts[:head] ? :head : :get
@@ -466,7 +470,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def cancel_job(job_path, opts = {})
     url     = job_url(job_path, '/cancel')
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
@@ -492,7 +496,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def add_job_keys(job_path, obj_paths, opts = {})
     url = job_url(job_path, '/in')
-    headers = gen_headers()
+    headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'text/plain' ])
 
     data = obj_paths.join("\n")
@@ -521,7 +525,7 @@ class MantaClient
   # be altered by passing in :attempts.
   def end_job_input(job_path, opts = {})
     url     = job_url(job_path, '/in/end')
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
@@ -600,7 +604,7 @@ class MantaClient
     raise ArgumentError unless [:all, :running, :done].include? state
     state = nil if state == :all
 
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
 #      method = opts[:head] ? :head : :get
@@ -696,7 +700,7 @@ class MantaClient
     raise ArgumentError unless [:in, :out, :fail].include? type
 
     url     = job_url(path, type.to_s)
-    headers = gen_headers()
+    headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       #method = opts[:head] ? :head : :get
@@ -774,7 +778,7 @@ class MantaClient
   # Creates headers to be given to the HTTP client and sent to the Manta
   # service. The most important is the Authorization header, without which
   # none of this class would work.
-  def gen_headers(data = nil)
+  def gen_headers(opts)
     now = Time.now.httpdate
     sig = gen_signature(now)
 
@@ -783,6 +787,29 @@ class MantaClient
                [ 'User-Agent',     HTTP_AGENT ],
                [ 'Accept-Version', '~1.0'     ]]
 
+
+     # headers for conditional requests (dates)
+     for arg, conditional in [[:if_modified_since,   'If-Modified-Since'  ],
+	                      [:if_unmodified_since, 'If-Unmodified-Since']]
+      date = opts[arg]
+      next unless date
+
+      date = DateTime.parse(date.to_s).httpdate unless date.kind_of? Time
+      headers.push([conditional, date])
+    end
+
+    # headers for conditional requests (etags)
+    for arg, conditional in [[:if_match,      'If-Match'     ],
+	                     [:if_none_match, 'If-None-Match']]
+      etag = opts[arg]
+      next unless etag
+
+      raise ArgumentError unless etag.kind_of? String
+      headers.push([conditional, etag])
+    end
+
+    # add md5 hash when sending data
+    data = opts[:data]
     if data
       md5 = base64digest(data)
       headers.push([ 'Content-MD5', md5 ])
@@ -812,9 +839,9 @@ class MantaClient
   def raise_error(result)
     raise unless result.is_a? HTTP::Message
 
-    if result.status < 400 || result.status > 499 || result.body == ''
-      raise UnknownError, result.status.to_s + ': ' + result.body
-    end
+#    if result.status < 400 || result.status > 499 || result.body == ''
+#      raise UnknownError, result.status.to_s + ': ' + result.body
+#    end
 
     err   = JSON.parse(result.body)
     klass = MantaClient.const_get err['code']

@@ -279,6 +279,145 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
+  def test_conditionals_on_objects
+    result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+                                          :if_modified_since => Time.now)
+    assert_equal result, true
+
+    modified = headers['Last-Modified']
+    assert modified
+
+    sleep 2
+
+    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+                        :if_modified_since => modified)
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    assert_equal result, 'foo-data'
+    assert_equal headers['Last-Modified'], modified
+
+    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+                        :if_unmodified_since => modified)
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    assert_equal result, 'bar-data'
+    assert headers['Last-Modified'] != modified
+
+    etag = headers['Etag']
+
+    begin
+      @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+                          :if_none_match => etag)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    assert_equal result, 'bar-data'
+    assert_equal headers['Etag'], etag
+
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+                        :if_match => etag)
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    assert_equal result, 'foo-data'
+    assert headers['Etag'] != etag
+
+    begin
+      @@client.get_object(@@test_dir_path + '/obj1', :if_match => etag)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+    etag     = headers['Etag']
+    modified = headers['Last-Modified']
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+                                          :if_match => etag)
+    assert_equal result, 'foo-data'
+    assert_equal headers['Etag'], etag
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+					  :if_none_match => etag)
+    assert_equal result, true
+    assert_equal headers['Etag'], etag
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+                                          :if_none_match => 'blahblah')
+    assert_equal result, 'foo-data'
+    assert_equal headers['Etag'], etag
+
+    begin
+      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj2',
+                        :if_none_match => etag)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+    result, headers = @@client.put_link(@@test_dir_path + '/obj1',
+                                        @@test_dir_path + '/obj2',
+                                        :if_match => etag)
+    assert true
+    assert_equal headers['Etag'], etag
+
+# XXX Manta has odd semantics here. Omitting until fixed.
+#    begin
+#      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
+#                        :if_modified_since => modified)
+#      assert false
+#    rescue MantaClient::PreconditionFailed
+#    end
+# Placeholder for now:
+    @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3')
+#
+#
+
+    result, headers = @@client.put_link(@@test_dir_path + '/obj1',
+                                        @@test_dir_path + '/obj4',
+                                        :if_unmodified_since => modified)
+    assert true
+
+    modified = headers['Last Modified']
+
+    begin
+      @@client.delete_object(@@test_dir_path + '/obj1', :if_none_match => etag)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+    result, _ = @@client.delete_object(@@test_dir_path + '/obj1', :if_match => etag)
+    assert_equal result, true
+
+    sleep 1
+
+    begin
+      @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now - 10000)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+# XXX Manta has odd semantics here. Omitting until fixed.
+#    begin
+#      @@client.delete_object(@@test_dir_path + '/obj3', :if_modified_since => Time.now)
+#      assert false
+#    rescue MantaClient::PreconditionFailed
+#    end
+
+    @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now)
+    @@client.delete_object(@@test_dir_path + '/obj4', :if_modified_since=> Time.now - 10000)
+
+
+    for obj_name in ['/obj1', '/obj3', '/obj4']
+      begin
+        @@client.get_object(@@test_dir_path + obj_name)
+	asser false
+      rescue MantaClient::ResourceNotFound
+      end
+    end
+  end
+
+
+
   # This test is definitely not pretty, but splitting it up will make it
   # take much longer due to the redundant creation of jobs. Perhaps that's
   # the wrong choice...
