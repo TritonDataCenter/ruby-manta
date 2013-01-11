@@ -263,6 +263,11 @@ The methods follow the RFC2616 semantics in the following manner: where 304
 would return instead of data, a true boolean returns instead. Where 412 would
 occur, a MantaClient::PreconditionFailed is thrown.
 
+Conditional requests allow many good things, so you're advised to use them
+where applicable. You can conditionally download an object only if it has
+changed, update an object with CAS semantics, create links correctly in the
+face of concurrent updates, and so forth.
+
 
 
 initialize(manta_host, user, priv_key, _options_)
