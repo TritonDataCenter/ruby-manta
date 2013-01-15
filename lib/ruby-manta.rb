@@ -24,7 +24,7 @@ require 'date'
 require 'json'
 require 'cgi'
 
-
+require 'version'
 
 class MantaClient
   DEFAULT_ATTEMPTS        = 3
@@ -32,7 +32,6 @@ class MantaClient
   DEFAULT_SEND_TIMEOUT    = 60
   DEFAULT_RECEIVE_TIMEOUT = 60
   MAX_LIMIT        = 1000
-  LIB_VERSION      = '1.0.0'
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
   OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public)(?:/|$)')
