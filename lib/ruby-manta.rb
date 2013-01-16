@@ -37,6 +37,15 @@ class MantaClient
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
   OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public)(?:/|$)')
   JOB_PATH_REGEX   = Regexp.new('^/.+/jobs(?:/|$)')
+
+  # match one or more protocol and hostnames, with optional port numbers.
+  # E.g. "http://example.com https://example.com:8443"
+  CORS_ORIGIN_REGEX  = Regexp.new('^\w+://[^\s\:]+(?:\:\d+)?' +
+                                  '(?:\s\w+://[^\s\:]+(?:\:\d+)?)*$')
+#  CORS_HEADERS_REGEX = Regexp.new('^[\w-]+(?:, [\w-]+)*$')
+  CORS_HEADERS_REGEX = Regexp.new('^[\w-]+(?:, [\w-]+)*$')
+  CORS_METHODS       = [ 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS' ]
+
   ERROR_CLASSES    = [ 'AuthorizationFailed', 'AuthorizationSchemeNotAllowed',
                        'ConcurrentRequest', 'ContentLengthRequired',
                        'ContentMD5Mismatch', 'DirectoryDoesNotExist',
@@ -125,6 +134,9 @@ class MantaClient
 
     opts[:data] = data
     headers = gen_headers(opts)
+
+    cors_headers = gen_cors_headers(opts)
+    headers = headers.concat(cors_headers)
 
     durability_level = opts[:durability_level]
     if durability_level
@@ -225,6 +237,9 @@ class MantaClient
     url = obj_url(dir_path)
     headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'application/json; type=directory' ])
+
+    cors_headers = gen_cors_headers(opts)
+    headers = headers.concat(cors_headers)
 
     attempt(opts[:attempts]) do
       result = @client.put(url, nil, headers)
@@ -808,6 +823,12 @@ class MantaClient
       headers.push([conditional, etag])
     end
 
+    origin = opts[:origin]
+    if origin
+      raise ArgumentError unless origin == 'null' || origin =~ CORS_ORIGIN_REGEX
+      headers.push([ 'Origin',  origin ])
+    end
+
     # add md5 hash when sending data
     data = opts[:data]
     if data
@@ -816,6 +837,67 @@ class MantaClient
     end
 
     return headers
+  end
+
+
+
+  # Do some sanity checks and create CORS-related headers
+  #
+  # For more details, see http://www.w3.org/TR/cors/ and
+  # https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS#Access-Control-Expose-Headers
+  def gen_cors_headers(opts)
+    headers = []
+
+    allow_credentials = opts[:access_control_allow_credentials]
+    if allow_credentials
+      allow_credentials = allow_credentials.to_s
+      raise ArgumentError unless allow_credentials == 'true' ||
+                                 allow_credentials == 'false'
+      headers.push([ 'Access-Control-Allow-Credentials', allow_credentials ])
+    end
+
+    allow_headers = opts[:access_control_allow_headers]
+    if allow_headers
+      raise ArgumentError unless allow_headers =~ CORS_HEADERS_REGEX
+      allow_headers = allow_headers.split(', ').map(&:downcase).sort.join(', ')
+      headers.push([ 'Access-Control-Allow-Headers', allow_headers ])
+    end
+
+    allow_methods = opts[:access_control_allow_methods]
+    if allow_methods
+      raise ArgumentError unless allow_methods.kind_of? String
+
+      unknown_methods = allow_methods.split(', ').reject do |str|
+                          CORS_METHODS.include? str
+                        end
+      raise ArgumentError unless unknown_methods.size == 0
+
+      headers.push([ 'Access-Control-Allow-Methods', allow_methods ])
+    end
+
+    allow_origin = opts[:access_control_allow_origin]
+    if allow_origin
+      raise ArgumentError unless allow_origin.kind_of? String
+      raise ArgumentError unless allow_origin == '*' ||
+                                 allow_origin == 'null' ||
+                                 allow_origin =~ CORS_ORIGIN_REGEX
+      headers.push([ 'Access-Control-Allow-Origin', allow_origin ])
+    end
+
+    expose_headers = opts[:access_control_expose_headers]
+    if expose_headers
+      raise ArgumentError unless expose_headers =~ CORS_HEADERS_REGEX
+      expose_headers = expose_headers.split(', ').map(&:downcase).sort.join(', ')
+      headers.push([ 'Access-Control-Expose-Headers', expose_headers ])
+    end
+
+    max_age = opts[:access_control_max_age]
+    if max_age
+      raise ArgumentError unless max_age.kind_of?(Integer) && max_age >= 0
+      headers.push([ 'Access-Control-Max-Age', max_age.to_s ])
+    end
+
+    headers
   end
 
 
@@ -846,7 +928,7 @@ class MantaClient
     err   = JSON.parse(result.body)
     klass = MantaClient.const_get err['code']
     raise klass, err['message']
-  rescue NameError, JSON::ParserError
+  rescue NameError, TypeError, JSON::ParserError
     raise UnknownError, result.status.to_s + ': ' + result.body
   end
 

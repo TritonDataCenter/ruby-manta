@@ -270,6 +270,24 @@ face of concurrent updates, and so forth.
 
 
 
+Cross-origin resource sharing
+-----------------------------
+
+Browsers do not allow cross-domain requests due to the same-origin policy.
+Cross-Origin Resource Sharing (CORS) headers provide a mechanism by which a
+browser can safely loosen this policy.
+
+ruby-manta and Manta support all headers specified by the W3C working draft,
+by passing in optional arguments to put_object() or put_directory():
+
+:access_control_allow_credentials, :access_control_allow_headers,
+:access_control_allow_methods, :access_control_allow_origin,
+:access_control_expose_headers, :access_control_max_age
+
+You can also pass in :origin to most object- and directory-related methods.
+
+
+
 initialize(manta_host, user, priv_key, _options_)
 -------------------------------------------------
 
@@ -305,7 +323,8 @@ The path must be a valid object path. Data can be any sequence of octets.
 The HTTP Content-Type stored on Manta can be set with an optional
 :content_type argument; the default is application/octet-stream. The
 number of distributed replicates of an object stored in Manta can be set
-with an optional :durability_level; the default is 2.
+with an optional :durability_level; the default is 2. Supports CORS optional
+arguments.
 
 Returns true along with received HTTP headers.
 
@@ -313,8 +332,10 @@ Examples:
 
     obj_path, headers = client.put_object('/john/stor/area51_map.png',
                                           binary_file_data,
-                                          :content_type => 'image/png',
-                                          :durability_level => 1)
+                                          :content_type        => 'image/png',
+                                          :durability_level    => 1,
+                                          :if_unmodified_since => Time.now - 300,
+                                          :access_control_allow_origin => 'http://example.com')
 
     obj_path, _ = client.put_object('/john/public/pass.txt', 'illuminati 4evah')
 
@@ -332,7 +353,9 @@ Returns the retrieved data along with received HTTP headers.
 
 Examples:
 
-    _, headers = client.get_object('/john/stor/area51_map.png', :head => true)
+    _, headers = client.get_object('/john/stor/area51_map.png',
+                                   :head   => true,
+                                   :origin => 'https://illuminati.org')
 
     file_data, headers = client.get_object('/john/stor/area51_map.png')
 
@@ -358,13 +381,17 @@ Examples:
 put_directory(dir path, _options_)
 ----------------------------------
 
-Creates a directory on Manta at a given path.
+Creates a directory on Manta at a given path. Supports CORS optional arguments.
 
 Returns true along with received HTTP headers.
 
 Example:
 
     client.put_directory('/john/stor/plans-world-domination')
+
+    client.put_directory('/john/public/honeypot',
+                        :access_control_allow_methods => 'GET, PUT, DELETE',
+                        :access_control_allow_origin => '*')
 
 
 

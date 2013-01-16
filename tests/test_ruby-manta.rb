@@ -241,6 +241,54 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
+  def test_cors
+    cors_args = {
+      :access_control_allow_credentials => true,
+      :access_control_allow_headers     => 'X-Random, X-Bar',
+      :access_control_allow_methods     => 'GET, POST, DELETE',
+      :access_control_allow_origin      => 'https://example.com:1234 http://127.0.0.1',
+      :access_control_expose_headers    => 'X-Last-Read, X-Foo',
+      :access_control_max_age           => 30
+    }
+
+    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data', cors_args)
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    assert_equal result, 'foo-data'
+
+    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
+                        [ 'access-control-allow-origin',      'https://example.com:1234 http://127.0.0.1' ],
+                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
+                        [ 'access-control-max-age',           '30'                 ] ]
+      assert_equal headers[name], value
+    end
+
+    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+                                          :origin => 'https://example.com:1234')
+
+    assert_equal result, 'foo-data'
+
+    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
+                        [ 'access-control-allow-origin',      nil                  ],
+                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
+                        [ 'access-control-max-age',           nil                  ]]
+      assert_equal headers[name], value
+    end
+
+    @@client.put_directory(@@test_dir_path + '/dir', cors_args)
+
+    result, headers = @@client.list_directory(@@test_dir_path + '/dir')
+
+    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
+                        [ 'access-control-allow-origin',      'https://example.com:1234 http://127.0.0.1' ],
+                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
+                        [ 'access-control-max-age',           '30'                 ] ]
+      assert_equal headers[name], value
+    end
+  end
+
+
+
   def test_signed_urls
     @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 

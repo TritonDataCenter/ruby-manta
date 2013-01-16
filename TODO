@@ -1,4 +1,2 @@
 - test with DSA keys
-- add support for conditional GET/PUT/POST/DELETE, using date or etags
 - add support for usage reports
-- support CORS for PutObject (?)
