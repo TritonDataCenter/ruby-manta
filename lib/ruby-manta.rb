@@ -43,7 +43,6 @@ class MantaClient
   # E.g. "http://example.com https://example.com:8443"
   CORS_ORIGIN_REGEX  = Regexp.new('^\w+://[^\s\:]+(?:\:\d+)?' +
                                   '(?:\s\w+://[^\s\:]+(?:\:\d+)?)*$')
-#  CORS_HEADERS_REGEX = Regexp.new('^[\w-]+(?:, [\w-]+)*$')
   CORS_HEADERS_REGEX = Regexp.new('^[\w-]+(?:, [\w-]+)*$')
   CORS_METHODS       = [ 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS' ]
 
