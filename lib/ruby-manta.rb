@@ -9,7 +9,7 @@
 #
 # ruby-manta should be thread-safe, and supports pooling of keep-alive
 # connections to the same server (through HTTPClient). It only relies on the
-# standard library and a pure Ruby HTTP client, so it should work anywhere.
+# standard library and two pure Ruby libraries, so it should work anywhere.
 #
 # For more information about Manta and general ruby-manta usage, please see
 # README.md.
@@ -20,7 +20,7 @@ require 'openssl'
 require 'net/ssh'
 require 'httpclient'
 require 'base64'
-require 'date'
+require 'time'
 require 'json'
 require 'cgi'
 
@@ -809,7 +809,7 @@ class MantaClient
       date = opts[arg]
       next unless date
 
-      date = DateTime.parse(date.to_s).httpdate unless date.kind_of? Time
+      date = Time.parse(date.to_s) unless date.kind_of? Time
       headers.push([conditional, date])
     end
 
