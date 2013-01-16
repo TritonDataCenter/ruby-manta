@@ -227,16 +227,19 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
   def test_public
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-
-    test_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
     host = ENV['HOST'].gsub('https', 'http')
+    test_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
+
+    @@client.put_directory(test_pub_dir_path)
+    @@client.put_object(test_pub_dir_path + '/obj1', 'foo-data')
 
     client = HTTPClient.new
     client.ssl_config.verify_mode = nil  # temp hack
     result = client.get(host + test_pub_dir_path + '/obj1')
-# TODO: temporarily disabled due to bug in Manta service
-#    assert_equal result.body, 'foo-data'
+    assert_equal result.body, 'foo-data'
+
+    @@client.delete_object(test_pub_dir_path + '/obj1')
+    @@client.delete_directory(test_pub_dir_path)
   end
 
 
