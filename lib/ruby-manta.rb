@@ -59,9 +59,9 @@ class MantaClient
                        'OperationNotAllowedOnDirectory',
                        'OperationNotAllowedOnRootDirectory',
                        'ParentNotDirectory', 'PreconditionFailed',
-		       'ResourceNotFound', 'SecureTransportRequired',
-		       'ServiceUnavailable', 'SourceObjectNotFound',
-		       'UploadTimeout', 'UserDoesNotExist',
+                       'ResourceNotFound', 'SecureTransportRequired',
+                       'ServiceUnavailable', 'SourceObjectNotFound',
+                       'UploadTimeout', 'UserDoesNotExist',
                        # and errors that are specific to this class:
                        'CorruptResultError', 'UnknownError',
                        'UnsupportedKeyError' ]
@@ -182,7 +182,7 @@ class MantaClient
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         sent_md5     = result.headers['Content-MD5']
         received_md5 = base64digest(result.body)
@@ -190,7 +190,7 @@ class MantaClient
 
         return result.body, result.headers
       elsif result.status == 304
-	return true, result.headers
+        return true, result.headers
       end
 
       raise_error(result)
@@ -290,7 +290,7 @@ class MantaClient
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=directory'
 
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         json_chunks = result.body.split("\r\n")
 
@@ -419,7 +419,7 @@ class MantaClient
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'application/json'
 
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         job = JSON.parse(result.body)
         return job, result.headers
@@ -457,7 +457,7 @@ class MantaClient
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=job-error'
 
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         json_chunks = result.body.split("\r\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
@@ -631,7 +631,7 @@ class MantaClient
         raise unless result.headers['Content-Type'] ==
                      'application/x-json-stream; type=job'
 
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         json_chunks      = result.body.split("\r\n")
         sent_num_entries = result.headers['Result-Set-Size']
@@ -726,7 +726,7 @@ class MantaClient
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'text/plain'
 
-	return true, result.headers if method == :head
+        return true, result.headers if method == :head
 
         paths = result.body.split("\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
@@ -805,7 +805,7 @@ class MantaClient
 
      # headers for conditional requests (dates)
      for arg, conditional in [[:if_modified_since,   'If-Modified-Since'  ],
-	                      [:if_unmodified_since, 'If-Unmodified-Since']]
+                              [:if_unmodified_since, 'If-Unmodified-Since']]
       date = opts[arg]
       next unless date
 
@@ -815,7 +815,7 @@ class MantaClient
 
     # headers for conditional requests (etags)
     for arg, conditional in [[:if_match,      'If-Match'     ],
-	                     [:if_none_match, 'If-None-Match']]
+                             [:if_none_match, 'If-None-Match']]
       etag = opts[arg]
       next unless etag
 

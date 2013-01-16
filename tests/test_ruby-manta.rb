@@ -23,7 +23,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
       priv_key_data = File.read(key)
       @@client = MantaClient.new(host, @@user, priv_key_data,
-			         :disable_ssl_verification => true)
+                                 :disable_ssl_verification => true)
 
       @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
@@ -386,7 +386,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal headers['Etag'], etag
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1',
-					  :if_none_match => etag)
+                                          :if_none_match => etag)
     assert_equal result, true
     assert_equal headers['Etag'], etag
 
@@ -458,7 +458,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     for obj_name in ['/obj1', '/obj3', '/obj4']
       begin
         @@client.get_object(@@test_dir_path + obj_name)
-	asser false
+        assert false
       rescue MantaClient::ResourceNotFound
       end
     end
