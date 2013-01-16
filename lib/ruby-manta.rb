@@ -921,10 +921,6 @@ class MantaClient
   def raise_error(result)
     raise unless result.is_a? HTTP::Message
 
-#    if result.status < 400 || result.status > 499 || result.body == ''
-#      raise UnknownError, result.status.to_s + ': ' + result.body
-#    end
-
     err   = JSON.parse(result.body)
     klass = MantaClient.const_get err['code']
     raise klass, err['message']

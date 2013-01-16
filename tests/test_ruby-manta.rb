@@ -529,6 +529,11 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal jobs.first['state'], 'running'
     assert_equal jobs.first['id'], path.split('/').last
 
+# Commented out until HEAD here by Manta
+#    jobs, headers = @@client.list_jobs(:running, :head => true)
+#    assert_equal jobs, true
+#    assert_equal headers['Result-Set-Size'], 1
+
     job, headers = @@client.get_job(path)
     assert headers.is_a? Hash
     assert job['name'       ].is_a? String
