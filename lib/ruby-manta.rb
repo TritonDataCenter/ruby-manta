@@ -24,7 +24,9 @@ require 'date'
 require 'json'
 require 'cgi'
 
-require 'version'
+require File.expand_path('../version', __FILE__)
+
+
 
 class MantaClient
   DEFAULT_ATTEMPTS        = 3
