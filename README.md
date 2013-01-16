@@ -260,8 +260,8 @@ You can get the Etag or Last-Modified from the headers returned by most
 methods.
 
 The methods follow the RFC2616 semantics in the following manner: where 304
-would return instead of data, a true boolean returns instead. Where 412 would
-occur, a MantaClient::PreconditionFailed is thrown.
+would return instead of data, a nil returns instead. Where 412 would occur,
+a MantaClient::PreconditionFailed is thrown.
 
 Conditional requests allow many good things, so you're advised to use them
 where applicable. You can conditionally download an object only if it has

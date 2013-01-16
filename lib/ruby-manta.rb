@@ -190,7 +190,7 @@ class MantaClient
 
         return result.body, result.headers
       elsif result.status == 304
-        return true, result.headers
+        return nil, result.headers
       end
 
       raise_error(result)

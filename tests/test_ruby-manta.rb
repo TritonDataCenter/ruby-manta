@@ -390,7 +390,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1',
                                           :if_none_match => etag)
-    assert_equal result, true
+    assert_equal result, nil
     assert_equal headers['Etag'], etag
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1',
