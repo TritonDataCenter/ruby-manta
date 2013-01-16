@@ -154,7 +154,7 @@ Installation
 
 If you're one of the chaps using Ruby 1.9.*, life is easy:
 
-    gem install ruby-manta-1.0.0.gem
+    gem install ruby-manta-1.0.1.gem
 
 Done.
 
