@@ -59,6 +59,7 @@ Example
 If you're like the author, examples are worth reams of explanation. Here,
 hurried friend, is an example demonstrating some of ruby-manta's usage:
 
+````` ruby
     require 'rubygems'
     require 'ruby-manta'
 
@@ -138,6 +139,7 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
     end
 
     client.delete_directory(dir_path)
+`````
 
 
 NB: there's no catching of exceptions above! Real production code should
@@ -254,7 +256,9 @@ argument :if_modified_since, :if_unmodified_since, :if_match, or :if_none_match
 to the method. For example, to conditionally get an object with etag
 "e346dce6-22f3-4ed5-8191-6b059b3684de":
 
+````` ruby
     client.get_object(path, :if_match => 'e346dce6-22f3-4ed5-8191-6b059b3684de')
+`````
 
 You can get the Etag or Last-Modified from the headers returned by most
 methods.
@@ -307,9 +311,11 @@ object per process.
 
 Example:
 
+````` ruby
     priv_key_data = File.read('/home/john/.ssh/john')
     client = MantaClient.new('https://manta.joyentcloud.com', 'john',
                              priv_key_data, :disable_ssl_verification => true)
+`````
 
 
 
@@ -330,6 +336,7 @@ Returns true along with received HTTP headers.
 
 Examples:
 
+````` ruby
     obj_path, headers = client.put_object('/john/stor/area51_map.png',
                                           binary_file_data,
                                           :content_type        => 'image/png',
@@ -338,6 +345,7 @@ Examples:
                                           :access_control_allow_origin => 'http://example.com')
 
     obj_path, _ = client.put_object('/john/public/pass.txt', 'illuminati 4evah')
+`````
 
 
 
@@ -353,11 +361,13 @@ Returns the retrieved data along with received HTTP headers.
 
 Examples:
 
+````` ruby
     _, headers = client.get_object('/john/stor/area51_map.png',
                                    :head   => true,
                                    :origin => 'https://illuminati.org')
 
     file_data, headers = client.get_object('/john/stor/area51_map.png')
+`````
 
 
 
@@ -372,9 +382,11 @@ Returns true along with received HTTP headers.
 
 Examples:
 
+````` ruby
     client.delete_object('/john/stor/area51_map.png')
 
     _, headers = client.delete_object('/john/public/pass.txt')
+`````
 
 
 
@@ -387,11 +399,13 @@ Returns true along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.put_directory('/john/stor/plans-world-domination')
 
     client.put_directory('/john/public/honeypot',
                         :access_control_allow_methods => 'GET, PUT, DELETE',
                         :access_control_allow_origin => '*')
+`````
 
 
 
@@ -411,12 +425,14 @@ entry. Also returns the received HTTP headers.
 
 Examples:
 
+````` ruby
     dir_entries, _ = client.list_directory('/john/stor/plans-world-domination',
                                            :limit  => 50,
                                            :marker => 'take_over_pentagon.txt')
 
     _, headers = client.list_directory('/john/stor/plans-world-domination',
                                        :head => true)
+`````
 
 
 
@@ -432,7 +448,9 @@ Returns true along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.delete_directory('/john/stor/plans-world-domination')
+`````
 
 
 
@@ -451,8 +469,10 @@ Returns true along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.put_link('/john/stor/character_assassination.txt',
                     '/john/public/media_consultation.txt')
+`````
 
 
 
@@ -470,8 +490,10 @@ Returns the path for the new job, along with received HTTP headers.
 
 Example:
 
+````` ruby
     job_desc = { :phases => [{ :exec => 'grep skynet' }] }
     job_path, _ = client.create_job(job_desc)
+`````
 
 
 
@@ -487,8 +509,10 @@ Returns a hash with job information, along with received HTTP headers.
 
 Example:
 
+````` ruby
     job_path = '/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7'
     job_info, _ = client.get_job(job_path)
+`````
 
 
 
@@ -507,10 +531,12 @@ Also returns received HTTP headers.
 
 Examples:
 
+````` ruby
     job_path = '/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7'
     job_errors, _ = client.get_job_errors(job_path)
 
     _, headers = client.get_job_errors(job_path, :head => true)
+`````
 
 
 
@@ -525,7 +551,9 @@ Returns true along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.cancel_job('/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7')
+`````
 
 
 
@@ -541,9 +569,11 @@ Returns true, along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.add_job_keys('/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7',
                         ['/john/stor/skynet_plans.txt',
                          '/john/stor/the_matrix.txt'])
+`````
 
 
 
@@ -559,7 +589,9 @@ Returns true, along with received HTTP headers.
 
 Example:
 
+````` ruby
     client.end_job_input('/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7')
+`````
 
 
 
@@ -575,8 +607,10 @@ Returns an array of object paths, along with received HTTP headers.
 
 Example:
 
+````` ruby
     job_path = '/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7'
     obj_paths, _ = client.get_job_input(job_path)
+`````
 
 
 
@@ -592,8 +626,10 @@ Returns an array of object paths, along with received HTTP headers.
 
 Example:
 
+````` ruby
     job_path = '/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7'
     obj_paths, _ = client.get_job_output(job_path)
+`````
 
 
 
@@ -608,8 +644,10 @@ Returns an array of object paths, along with received HTTP headers.
 
 Example:
 
+````` ruby
     job_path = '/john/jobs/80e481c4-8567-47e7-bdba-f0c5705af1c7'
     obj_failures, _ = client.get_job_failures(job_path)
+`````
 
 
 
@@ -628,7 +666,9 @@ Also returns received HTTP headers.
 
 Example:
 
+````` ruby
     running_jobs, _ = client.list_jobs(:running)
+`````
 
 
 
@@ -651,7 +691,9 @@ it reaches the expiry date.
 
 Example:
 
+````` ruby
     url = client.gen_signed_url(Time.now + 5000, :get, '/john/stor/pass.txt')
+`````
 
 
 
