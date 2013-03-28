@@ -330,6 +330,26 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
+  def test_reports
+    begin
+      @@client.list_directory('/%s/reportse' % @@user)
+      assert fail
+    rescue ArgumentError
+    end
+
+    result, headers = @@client.list_directory('/%s/reports' % @@user)
+    assert headers.is_a? Hash
+    assert result.is_a? Array
+    assert result.length > 0
+
+    result, headers = @@client.list_directory('/%s/reports/usage' % @@user)
+    assert headers.is_a? Hash
+    assert result.is_a? Array
+    assert result.length > 0
+  end
+
+
+
   def test_conditionals_on_objects
     result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
                                           :if_modified_since => Time.now)

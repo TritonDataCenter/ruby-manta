@@ -36,7 +36,7 @@ class MantaClient
   MAX_LIMIT        = 1000
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
-  OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public)(?:/|$)')
+  OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public|reports)(?:/|$)')
   JOB_PATH_REGEX   = Regexp.new('^/.+/jobs(?:/|$)')
 
   # match one or more protocol and hostnames, with optional port numbers.
