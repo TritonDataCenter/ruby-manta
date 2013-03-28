@@ -435,17 +435,15 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert true
     assert_equal headers['Etag'], etag
 
-# XXX Manta has odd semantics here. Omitting until fixed.
-#    begin
-#      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
-#                        :if_modified_since => modified)
-#      assert false
-#    rescue MantaClient::PreconditionFailed
-#    end
-# Placeholder for now:
-    @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3')
-#
-#
+    begin
+      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
+                        :if_modified_since => modified)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
+
+    @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
+                      :if_unmodified_since => modified)
 
     result, headers = @@client.put_link(@@test_dir_path + '/obj1',
                                         @@test_dir_path + '/obj4',
@@ -471,12 +469,11 @@ class TestMantaClient < MiniTest::Unit::TestCase
     rescue MantaClient::PreconditionFailed
     end
 
-# XXX Manta has odd semantics here. Omitting until fixed.
-#    begin
-#      @@client.delete_object(@@test_dir_path + '/obj3', :if_modified_since => Time.now)
-#      assert false
-#    rescue MantaClient::PreconditionFailed
-#    end
+    begin
+      @@client.delete_object(@@test_dir_path + '/obj3', :if_modified_since => Time.now)
+      assert false
+    rescue MantaClient::PreconditionFailed
+    end
 
     @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now)
     @@client.delete_object(@@test_dir_path + '/obj4', :if_modified_since=> Time.now - 10000)
