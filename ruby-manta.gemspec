@@ -10,9 +10,11 @@ Gem::Specification.new do |s|
   s.email       = 'marsell@joyent.com'
   s.homepage    = 'http://github.com/joyent/ruby-manta/'
 
-  s.add_dependency('httpclient', '>= 2.3.0.1')
-  s.add_dependency('net-ssh', '>= 2.6.0')
+  s.add_dependency('json_pure', '>= 1.7.6', :platforms => :ruby_18)
   s.add_development_dependency('minitest')
+
+  s.add_dependency('net-ssh', '>= 2.6.0')
+  s.add_dependency('httpclient', '>= 2.3.0.1')
 
   s.files       = ['LICENSE',
                    'README.md',

@@ -161,10 +161,7 @@ If you're one of the chaps using Ruby 1.9.*, life is easy:
 Done.
 
 If you're of a more conservative bent and are using Ruby 1.8.*, there might
-be a harmless HTTPClient RDoc error; ignore it. To complete the installation
-for 1.8, also run:
-
-    gem install json_pure
+be a (mostly-)harmless HTTPClient RDoc error; ignore it.
 
 
 
