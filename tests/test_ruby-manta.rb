@@ -338,10 +338,14 @@ class TestMantaClient < MiniTest::Unit::TestCase
     modified = headers['Last-Modified']
     assert modified
 
-    sleep 2
+    sleep 1
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
-                        :if_modified_since => modified)
+    begin
+      @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+                          :if_modified_since => modified)
+      assert fail
+    rescue MantaClient::PreconditionFailed
+    end
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1')
     assert_equal result, 'foo-data'
