@@ -46,25 +46,26 @@ class MantaClient
   CORS_HEADERS_REGEX = Regexp.new('^[\w-]+(?:, [\w-]+)*$')
   CORS_METHODS       = [ 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS' ]
 
-  ERROR_CLASSES    = [ 'AuthorizationFailed', 'AuthorizationSchemeNotAllowed',
-                       'ConcurrentRequest', 'ContentLengthRequired',
-                       'ContentMD5Mismatch', 'DirectoryDoesNotExist',
-                       'DirectoryNotEmpty', 'EntityAlreadyExists',
-                       'InternalError', 'InvalidAuthenticationToken',
-                       'InvalidDurabilityLevel', 'InvalidJob',
-                       'InvalidJobState', 'InvalidKeyId', 'InvalidLink',
-                       'InvalidQueryStringAuthentication', 'InvalidSignature',
-                       'JobNotFound', 'KeyDoesNotExist', 'LinkNotObject',
-                       'LocationRequired', 'NotAcceptable', 'NotEnoughSpace',
-                       'OperationNotAllowedOnDirectory',
-                       'OperationNotAllowedOnRootDirectory',
-                       'ParentNotDirectory', 'PreconditionFailed',
-                       'ResourceNotFound', 'SecureTransportRequired',
-                       'ServiceUnavailable', 'SourceObjectNotFound',
-                       'UploadTimeout', 'UserDoesNotExist',
+  ERROR_CLASSES    = [ 'AuthorizationFailed', 'AuthSchemeNotAllowed',
+                       'BadRequest', 'Checksum', 'ConcurrentRequest',
+                       'ContentLength', 'ContentMD5Mismatch',
+                       'DirectoryDoesNotExist', 'DirectoryExists',
+                       'DirectoryNotEmpty', 'DirectoryOperation',
+                       'EntityExists', 'Internal', 'InvalidArgument',
+                       'InvalidAuthToken', 'InvalidCredentials',
+                       'InvalidDurabilityLevel', 'InvalidJob', 'InvalidKeyId',
+                       'InvalidLink', 'InvalidSignature', 'InvalidJobState',
+                       'JobNotFound', 'JobState', 'KeyDoesNotExist',
+                       'LinkNotFound', 'LinkNotObject', 'LinkRequired',
+                       'NotAcceptable', 'NotEnoughSpace', 'ParentNotDirectory',
+                       'PreconditionFailed', 'PreSignedRequest',
+                       'RequestEntityTooLarge', 'ResourceNotFound',
+                       'RootDirectory', 'ServiceUnavailable',
+                       'SourceObjectNotFound', 'SSLRequired', 'TaskInit',
+                       'UploadTimeout', 'UserDoesNotExist', 'UserTaskError',
                        # and errors that are specific to this class:
-                       'CorruptResultError', 'UnknownError',
-                       'UnsupportedKeyError' ]
+                       'CorruptResult', 'UnknownError',
+                       'UnsupportedKey' ]
 
 
 
@@ -186,7 +187,7 @@ class MantaClient
 
         sent_md5     = result.headers['Content-MD5']
         received_md5 = base64digest(result.body)
-        raise CorruptResultError if sent_md5 != received_md5
+        raise CorruptResult if sent_md5 != received_md5
 
         return result.body, result.headers
       elsif result.status == 304
@@ -297,7 +298,7 @@ class MantaClient
         sent_num_entries = result.headers['Result-Set-Size'].to_i
         if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
            json_chunks.size > limit
-          raise CorruptResultError
+          raise CorruptResult
         end
 
         dir_entries = json_chunks.map { |i| JSON.parse(i) }
@@ -461,7 +462,7 @@ class MantaClient
 
         json_chunks = result.body.split("\r\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
-#        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
+#        raise CorruptResult if json_chunks.size != sent_num_entries.to_i
 
         errors = json_chunks.map { |i| JSON.parse(i) }
 
@@ -635,7 +636,7 @@ class MantaClient
 
         json_chunks      = result.body.split("\r\n")
         sent_num_entries = result.headers['Result-Set-Size']
-        raise CorruptResultError if json_chunks.size != sent_num_entries.to_i
+        raise CorruptResult if json_chunks.size != sent_num_entries.to_i
 
         job_entries = json_chunks.map { |i| JSON.parse(i) }
 
@@ -730,7 +731,7 @@ class MantaClient
 
         paths = result.body.split("\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
-#        raise CorruptResultError if paths.size != sent_num_entries.to_i
+#        raise CorruptResult if paths.size != sent_num_entries.to_i
 
         return paths, result.headers
       end
@@ -780,7 +781,7 @@ class MantaClient
       begin
         return yield blk
       rescue Errno::ECONNREFUSED, HTTPClient::TimeoutError,
-             CorruptResultError => e
+             CorruptResult => e
         raise e if attempt == tries
         sleep 2 ** attempt
         attempt += 1

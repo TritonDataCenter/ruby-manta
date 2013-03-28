@@ -617,17 +617,17 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     assert obj2_result['id']
     assert obj2_result['what']
-    assert_equal obj2_result['code'   ], 'EJ_USER'
-    assert_equal obj2_result['message'], 'user command exited with status 1'
+    assert_equal obj2_result['code'   ], 'UserTaskError'
+    assert_equal obj2_result['message'], 'user command exited with code 1'
     assert_equal obj2_result['key'    ], obj_key_paths[1]
-    assert_equal obj2_result['phase'  ], 0
+    assert_equal obj2_result['phase'  ], '0'
 
     assert obj3_result['id']
     assert obj3_result['what']
-    assert_equal obj3_result['code'   ], 'EJ_NOENT'
+    assert_equal obj3_result['code'   ], 'ResourceNotFoundError'
     assert obj3_result['message'] =~ /^no such object/
     assert_equal obj3_result['key'    ], obj_key_paths[2]
-    assert_equal obj3_result['phase'  ], 0
+    assert_equal obj3_result['phase'  ], '0'
 
     begin
       @@client.cancel_job(path)
