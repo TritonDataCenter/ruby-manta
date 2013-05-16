@@ -35,7 +35,7 @@ class MantaClient
   DEFAULT_RECEIVE_TIMEOUT = 60
   MAX_LIMIT        = 1000
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
-  HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s" %s'
+  HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s",signature="%s"'
   OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public|reports)(?:/|$)')
   JOB_PATH_REGEX   = Regexp.new('^/.+/jobs(?:/|$)')
 
@@ -796,7 +796,7 @@ class MantaClient
   # none of this class would work.
   def gen_headers(opts)
     now = Time.now.httpdate
-    sig = gen_signature(now)
+    sig = gen_signature('date: ' + now)
 
     headers = [[ 'Date',           now        ],
                [ 'Authorization',  sig        ],
