@@ -37,7 +37,7 @@ class MantaClient
   HTTP_AGENT       = "ruby-manta/#{LIB_VERSION} (#{RUBY_PLATFORM}; #{OpenSSL::OPENSSL_VERSION}) ruby/#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
   HTTP_SIGNATURE   = 'Signature keyId="/%s/keys/%s",algorithm="%s",signature="%s"'
   OBJ_PATH_REGEX   = Regexp.new('^/.+/(?:stor|public|reports)(?:/|$)')
-  JOB_PATH_REGEX   = Regexp.new('^/.+/jobs(?:/|$)')
+  JOB_PATH_REGEX   = Regexp.new('^/.+?/jobs/.+?(?:/live|$)')
 
   # match one or more protocol and hostnames, with optional port numbers.
   # E.g. "http://example.com https://example.com:8443"
@@ -165,8 +165,8 @@ class MantaClient
   # Get an object from Manta at a given path, and checks it's uncorrupted.
   #
   # The path must start with /<user>/stor or /<user/public and point at an
-  # actual object. :head => true can optionally be passed in to do a HEAD
-  # instead of a GET.
+  # actual object, as well as output objects for jobs. :head => true can
+  # optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns the retrieved data along with received HTTP headers.
   #
@@ -293,9 +293,9 @@ class MantaClient
 
         return true, result.headers if method == :head
 
-        json_chunks = result.body.split("\r\n")
-
+        json_chunks = result.body.split("\n")
         sent_num_entries = result.headers['Result-Set-Size'].to_i
+
         if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
            json_chunks.size > limit
           raise CorruptResult
@@ -400,7 +400,7 @@ class MantaClient
 
   # Gets various information about a job in Manta at a given path.
   #
-  # The path must start with /<user>/jobs and point at an actual job.
+  # The path must start with /<user>/jobs/<job UUID> and point at an actual job.
   # :head => true can optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns a hash with job information, along with received HTTP headers.
@@ -409,7 +409,7 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job(job_path, opts = {})
-    url     = job_url(job_path)
+    url     = job_url(job_path, '/live/status')
     headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
@@ -435,7 +435,7 @@ class MantaClient
   # Gets errors that occured during the execution of a job in Manta at a given
   # path.
   #
-  # The path must start with /<user>/jobs and point at an actual job.
+  # The path must start with /<user>/jobs/<job UUID> and point at an actual job.
   # :head => true can optionally be passed in to do a HEAD instead of a GET.
   #
   # Returns an array of hashes, each hash containing information about an
@@ -446,7 +446,7 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def get_job_errors(job_path, opts = {})
-    url     = job_url(job_path, '/err')
+    url     = job_url(job_path, '/live/err')
     headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
@@ -460,7 +460,7 @@ class MantaClient
 
         return true, result.headers if method == :head
 
-        json_chunks = result.body.split("\r\n")
+        json_chunks = result.body.split("\n")
 #        sent_num_entries = result.headers['Result-Set-Size']
 #        raise CorruptResult if json_chunks.size != sent_num_entries.to_i
 
@@ -477,7 +477,7 @@ class MantaClient
 
   # Cancels a running job in Manta at a given path.
   #
-  # The path must start with /<user>/jobs and point at an actual job.
+  # The path must start with /<user>/jobs/<job UUID> and point at an actual job.
   #
   # Returns true, along with received HTTP headers.
   #
@@ -485,14 +485,14 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def cancel_job(job_path, opts = {})
-    url     = job_url(job_path, '/cancel')
+    url     = job_url(job_path, '/live/cancel')
     headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
-      return true, result.headers if result.status == 204
+      return true, result.headers if result.status == 202
       raise_error(result)
     end
   end
@@ -501,9 +501,9 @@ class MantaClient
 
   # Adds objects for a running job in Manta to process.
   #
-  # The job_path must start with /<user>/jobs and point at an actual running
-  # job. The obj_paths must be an array of paths, starting with /<user>/stor
-  # or /<user>/public, pointing at actual objects.
+  # The job_path must start with /<user>/jobs/<job UUID> and point at an actual
+  # running job. The obj_paths must be an array of paths, starting with
+  # /<user>/stor or /<user>/public, pointing at actual objects.
   #
   # Returns true, along with received HTTP headers.
   #
@@ -511,7 +511,7 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def add_job_keys(job_path, obj_paths, opts = {})
-    url = job_url(job_path, '/in')
+    url = job_url(job_path, '/live/in')
     headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'text/plain' ])
 
@@ -531,8 +531,8 @@ class MantaClient
   # Inform Manta that no more objects will be added for processing by a job,
   # and that the job should finish all phases and terminate.
   #
-  # The job_path must start with /<user>/jobs and point at an actual running
-  # job.
+  # The job_path must start with /<user>/jobs/<job UUID> and point at an actual
+  # running job.
   #
   # Returns true, along with received HTTP headers.
   #
@@ -540,14 +540,14 @@ class MantaClient
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
   def end_job_input(job_path, opts = {})
-    url     = job_url(job_path, '/in/end')
+    url     = job_url(job_path, '/live/in/end')
     headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do
       result = @client.post(url, nil, headers)
       raise unless result.is_a? HTTP::Message
 
-      return true, result.headers if result.status == 204
+      return true, result.headers if result.status == 202
       raise_error(result)
     end
   end
@@ -556,8 +556,8 @@ class MantaClient
 
   # Get a list of objects that have been given to a Manta job for processing.
   #
-  # The job_path must start with /<user>/jobs and point at an actual running
-  # job.
+  # The job_path must start with /<user>/jobs/<job UUID> and point at an actual
+  # running job.
   #
   # Returns an array of object paths, along with received HTTP headers.
   #
@@ -573,8 +573,8 @@ class MantaClient
   # Get a list of objects that contain the intermediate results of a running
   # Manta job.
   #
-  # The job_path must start with /<user>/jobs and point at an actual running
-  # job.
+  # The job_path must start with /<user>/jobs/<job UUID> and point at an actual
+  # running job.
   #
   # Returns an array of object paths, along with received HTTP headers.
   #
@@ -589,8 +589,8 @@ class MantaClient
 
   # Get a list of objects that had failures during processing in a Manta job.
   #
-  # The job_path must start with /<user>/jobs and point at an actual running
-  # job.
+  # The job_path must start with /<user>/jobs/<job UUID> and point at an actual
+  # running job.
   #
   # Returns an array of object paths, along with received HTTP headers.
   #
@@ -610,8 +610,8 @@ class MantaClient
   # of the latter two if you've run a lot of jobs -- the list could be quite
   # long.
   #
-  # Returns an array of hashes, each hash containing information about a job.
-  # Also returns received HTTP headers.
+  # Returns an array of hashes, each hash containing some information about a
+  # job. Also returns received HTTP headers.
   #
   # If there was an unrecoverable error, throws an exception. On connection or
   # corruption errors, more attempts will be made; the number of attempts can
@@ -629,14 +629,19 @@ class MantaClient
       raise unless result.is_a? HTTP::Message
 
       if result.status == 200
+#        return true, result.headers if method == :head
+        return [],   result.headers if result.body.size == 0
+
+        expected_type = state ? 'job' : 'directory'
         raise unless result.headers['Content-Type'] ==
-                     'application/x-json-stream; type=job'
+                     'application/x-json-stream; type=' + expected_type
 
-        return true, result.headers if method == :head
+        json_chunks = result.body.split("\n")
 
-        json_chunks      = result.body.split("\r\n")
-        sent_num_entries = result.headers['Result-Set-Size']
-        raise CorruptResult if json_chunks.size != sent_num_entries.to_i
+        if !state
+          sent_num_entries = result.headers['Result-Set-Size']
+          raise CorruptResult if json_chunks.size != sent_num_entries.to_i
+        end
 
         job_entries = json_chunks.map { |i| JSON.parse(i) }
 
@@ -705,7 +710,7 @@ class MantaClient
   # Fetch lists of objects that have a given status.
   #
   # type takes one of three values (:in, :out, fail), path must start with
-  # /<user>/jobs and point at an actual job.
+  # /<user>/jobs/<job UUID> and point at an actual job.
   #
   # Returns an array of object paths, along with received HTTP headers.
   #
@@ -715,7 +720,7 @@ class MantaClient
   def get_job_state_streams(type, path, opts)
     raise ArgumentError unless [:in, :out, :fail].include? type
 
-    url     = job_url(path, type.to_s)
+    url     = job_url(path, '/live/' + type.to_s)
     headers = gen_headers(opts)
 
     attempt(opts[:attempts]) do

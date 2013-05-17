@@ -119,17 +119,17 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     assert_equal result[0]['name'], 'dir1'
     assert_equal result[0]['type'], 'directory'
-    assert result[0]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/)
+    assert result[0]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
 
     assert_equal result[1]['name'], 'obj1'
     assert_equal result[1]['type'], 'object'
     assert_equal result[1]['size'], 9
-    assert result[1]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/)
+    assert result[1]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
 
     assert_equal result[2]['name'], 'obj2'
     assert_equal result[2]['type'], 'object'
     assert_equal result[2]['size'], 9
-    assert result[2]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/)
+    assert result[2]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
 
     result, _ = @@client.list_directory(@@test_dir_path, :limit => 2)
     assert_equal result.size, 2
@@ -498,7 +498,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert headers.is_a? Hash
 
     result.each do |entry|
-      path = '/%s/jobs/%s' % [ @@user, entry['id'] ]
+      path = '/%s/jobs/%s' % [ @@user, entry['name'] ]
       @@client.cancel_job(path)
     end
 
@@ -524,20 +524,12 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     result, _ = @@client.list_jobs(:all)
     result.each do |job|
-      assert ['done', 'running', 'queued'].include? job['state']
-      assert job['id'] =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      assert job['name'       ].is_a? String
-      assert job['phases'     ].is_a? Array
-      assert job['cancelled'  ].is_a?(TrueClass) ||
-             job['cancelled'  ].is_a?(FalseClass)
-      assert job['timeCreated'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)
-
-      if job['timeDone']
-        assert job['timeDone'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)
-      end
+      assert job['name' ] =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      assert job['mtime'] =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/
+      assert_equal job['type'], 'directory'
     end
 
-    assert result.select { |r| r['status'] == 'running' }.size, 1
+    assert result.size >= 1
 
     begin
       @@client.list_jobs(:some)
@@ -547,8 +539,8 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
     jobs, _ = @@client.list_jobs(:running)
     assert_equal jobs.size, 1
-    assert_equal jobs.first['state'], 'running'
-    assert_equal jobs.first['id'], path.split('/').last
+    assert_equal jobs[0]['type'], 'directory'
+    assert_equal jobs[0]['name'], path.split('/').last
 
 # Commented out until HEAD here by Manta
 #    jobs, headers = @@client.list_jobs(:running, :head => true)
@@ -560,7 +552,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert job['name'       ].is_a? String
     assert job['phases'     ].is_a? Array
     assert job['timeCreated'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)
-    assert_equal jobs.first['id'], path.split('/').last
+    assert_equal job['id'       ], path.split('/').last
     assert_equal job['state'    ], 'running'
     assert_equal job['cancelled'], false
     assert_equal job['timeDone' ], nil
@@ -577,7 +569,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert headers.is_a? Hash
 
     result, headers = @@client.get_job_input(path)
-    assert_equal result, obj_key_paths
+    assert_equal result.sort, obj_key_paths.sort
     assert headers.is_a? Hash
 
     begin
@@ -627,27 +619,27 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal result, "foo-data\n"
 
     result, headers = @@client.get_job_failures(path)
-    assert_equal result, obj_key_paths.slice(1, 2)
+    assert_equal result.sort, obj_key_paths.slice(1, 2).sort
     assert headers.is_a? Hash
 
     result, headers = @@client.get_job_errors(path)
+    assert_equal result.size, 2
     assert headers.is_a? Hash
 
-    obj2_result = result[0]
-    obj3_result = result[1]
+    obj2_result, obj3_result = result.sort { |i,j| i['input'] <=> j['input'] }
 
-    assert obj2_result['id']
     assert obj2_result['what']
+    assert obj2_result['stderr']
     assert_equal obj2_result['code'   ], 'UserTaskError'
     assert_equal obj2_result['message'], 'user command exited with code 1'
-    assert_equal obj2_result['key'    ], obj_key_paths[1]
+    assert_equal obj2_result['input'  ], obj_key_paths[1]
     assert_equal obj2_result['phase'  ], '0'
 
-    assert obj3_result['id']
     assert obj3_result['what']
+    assert obj2_result['stderr']
     assert_equal obj3_result['code'   ], 'ResourceNotFoundError'
     assert obj3_result['message'] =~ /^no such object/
-    assert_equal obj3_result['key'    ], obj_key_paths[2]
+    assert_equal obj3_result['input'  ], obj_key_paths[2]
     assert_equal obj3_result['phase'  ], '0'
 
     begin

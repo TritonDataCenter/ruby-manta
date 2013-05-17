@@ -35,7 +35,7 @@ end
 # map phase, then uses awk during reduce to sum up the three numbers each wc
 # returned.
 job_details = {
-  :jobName => 'total word count',
+  :name => 'total word count',
   :phases => [ {
     :exec => 'wc'
   }, {

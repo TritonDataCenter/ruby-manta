@@ -97,7 +97,7 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
     # map phase, then uses awk during reduce to sum up the three numbers each wc
     # returned.
     job_details = {
-      :jobName => 'total word count',
+      :name => 'total word count',
       :phases => [ {
         :exec => 'wc'
       }, {
@@ -658,7 +658,7 @@ that are currently processing, :done and :all should be obvious. Be careful
 of the latter two if you've run a lot of jobs -- the list could be quite
 long.
 
-Returns an array of hashes, each hash containing information about a job.
+Returns an array of hashes, each hash containing some information about a job.
 Also returns received HTTP headers.
 
 Example:
