@@ -71,8 +71,8 @@ class TestMantaClient < MiniTest::Unit::TestCase
     check { @@client.put_directory(bad_obj_path)            }
     check { @@client.list_directory(bad_obj_path)           }
     check { @@client.delete_directory(bad_obj_path)         }
-    check { @@client.put_link(good_obj_path, bad_obj_path)  }
-    check { @@client.put_link(bad_obj_path,  good_obj_path) }
+    check { @@client.put_snaplink(good_obj_path, bad_obj_path)  }
+    check { @@client.put_snaplink(bad_obj_path,  good_obj_path) }
 
     good_job_path = "/#{@@user}/job/ruby-manta-test"
     bad_job_path  = "/#{@@user}/joba/ruby-manta-test"
@@ -305,17 +305,18 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_links
+  def test_snaplinks
     begin
-      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj2')
+      @@client.put_snaplink(@@test_dir_path + '/obj1',
+                            @@test_dir_path + '/obj2')
       assert false
     rescue MantaClient::SourceObjectNotFound
     end
 
     @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 
-    result, headers = @@client.put_link(@@test_dir_path + '/obj1',
-                                        @@test_dir_path + '/obj2')
+    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
+                                            @@test_dir_path + '/obj2')
     assert_equal result, true
     assert headers.is_a? Hash
 
@@ -423,31 +424,33 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal headers['Etag'], etag
 
     begin
-      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj2',
-                        :if_none_match => etag)
+      @@client.put_snaplink(@@test_dir_path + '/obj1',
+                            @@test_dir_path + '/obj2',
+                            :if_none_match => etag)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    result, headers = @@client.put_link(@@test_dir_path + '/obj1',
-                                        @@test_dir_path + '/obj2',
-                                        :if_match => etag)
+    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
+                                            @@test_dir_path + '/obj2',
+                                            :if_match => etag)
     assert true
     assert_equal headers['Etag'], etag
 
     begin
-      @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
-                        :if_modified_since => modified)
+      @@client.put_snaplink(@@test_dir_path + '/obj1',
+                            @@test_dir_path + '/obj3',
+                            :if_modified_since => modified)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    @@client.put_link(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
-                      :if_unmodified_since => modified)
+    @@client.put_snaplink(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
+                          :if_unmodified_since => modified)
 
-    result, headers = @@client.put_link(@@test_dir_path + '/obj1',
-                                        @@test_dir_path + '/obj4',
-                                        :if_unmodified_since => modified)
+    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
+                                            @@test_dir_path + '/obj4',
+                                            :if_unmodified_since => modified)
     assert true
 
     modified = headers['Last Modified']

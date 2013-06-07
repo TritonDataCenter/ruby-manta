@@ -337,7 +337,8 @@ class MantaClient
 
 
 
-  # Creates a link from on object in Manta at a given path to a different path.
+  # Creates a snaplink from one object in Manta at a given path to a different
+  # path.
   #
   # Both paths should start with /<user>/stor or /<user/public.
   #
@@ -346,7 +347,7 @@ class MantaClient
   # If there was an unrecoverable error, throws an exception. On connection or
   # corruption errors, more attempts will be made; the number of attempts can
   # be altered by passing in :attempts.
-  def put_link(orig_path, link_path, opts = {})
+  def put_snaplink(orig_path, link_path, opts = {})
     headers = gen_headers(opts)
     headers.push([ 'Content-Type', 'application/json; type=link' ],
                  [ 'Location',     obj_url(orig_path)            ])

@@ -266,7 +266,7 @@ a MantaClient::PreconditionFailed is thrown.
 
 Conditional requests allow many good things, so you're advised to use them
 where applicable. You can conditionally download an object only if it has
-changed, update an object with CAS semantics, create links correctly in the
+changed, update an object with CAS semantics, create snaplinks correctly in the
 face of concurrent updates, and so forth.
 
 
@@ -451,13 +451,13 @@ Example:
 
 
 
-put_link(orig_path, link_path, _options_)
+put_snaplink(orig_path, link_path, _options_)
 -----------------------------------------
 
-Creates a link from on object in Manta at a given path to a different path.
+Creates a snaplink from on object in Manta at a given path to a different path.
 This effectively creates another reference to the same object. Since objects
 are immutable, PUTting over that object reduces the refcount on the object;
-other references (i.e. links) continue to see the original version.
+other references (i.e. snaplinks) continue to see the original version.
 
 Both paths should be valid object paths. orig_path should point at an existing
 object.
@@ -467,8 +467,8 @@ Returns true along with received HTTP headers.
 Example:
 
 ````` ruby
-    client.put_link('/john/stor/character_assassination.txt',
-                    '/john/public/media_consultation.txt')
+    client.put_snaplink('/john/stor/character_assassination.txt',
+                        '/john/public/media_consultation.txt')
 `````
 
 
