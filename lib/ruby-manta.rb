@@ -461,9 +461,6 @@ class MantaClient
         return true, result.headers if method == :head
 
         json_chunks = result.body.split("\n")
-#        sent_num_entries = result.headers['Result-Set-Size']
-#        raise CorruptResult if json_chunks.size != sent_num_entries.to_i
-
         errors = json_chunks.map { |i| JSON.parse(i) }
 
         return errors, result.headers
@@ -632,17 +629,10 @@ class MantaClient
 #        return true, result.headers if method == :head
         return [],   result.headers if result.body.size == 0
 
-        expected_type = state ? 'job' : 'directory'
         raise unless result.headers['Content-Type'] ==
-                     'application/x-json-stream; type=' + expected_type
+                     'application/x-json-stream; type=job'
 
         json_chunks = result.body.split("\n")
-
-        if !state
-          sent_num_entries = result.headers['Result-Set-Size']
-          raise CorruptResult if json_chunks.size != sent_num_entries.to_i
-        end
-
         job_entries = json_chunks.map { |i| JSON.parse(i) }
 
         return job_entries, result.headers
@@ -731,13 +721,8 @@ class MantaClient
 
       if result.status == 200
         raise unless result.headers['Content-Type'] == 'text/plain'
-
         return true, result.headers if method == :head
-
         paths = result.body.split("\n")
-#        sent_num_entries = result.headers['Result-Set-Size']
-#        raise CorruptResult if paths.size != sent_num_entries.to_i
-
         return paths, result.headers
       end
 
