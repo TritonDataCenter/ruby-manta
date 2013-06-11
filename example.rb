@@ -3,7 +3,7 @@ require 'ruby-manta'
 
 # You'll need to provide these four environment variables to run this
 # example. E.g.:
-# USER=john KEY=~/.ssh/john HOST=https://manta.joyent.com DIR=. ruby example.rb
+# USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com DIR=. ruby example.rb
 host       = ENV['HOST']
 user       = ENV['USER']
 priv_key   = ENV['KEY' ]
