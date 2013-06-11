@@ -1,4 +1,3 @@
-require 'rubygems'
 require 'ruby-manta'
 
 # You'll need to provide these four environment variables to run this

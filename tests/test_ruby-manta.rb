@@ -1,4 +1,3 @@
-require 'rubygems'  # for 1.8 compat
 require 'minitest/autorun'
 require 'httpclient'
 require File.expand_path('../../lib/ruby-manta', __FILE__)
@@ -17,7 +16,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
       unless host && key && @@user
         $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
-        $stderr.puts 'E.g. USER=john KEY=~/.ssh/john HOST=https://manta.joyent.com ruby tests/test_manta.rb'
+        $stderr.puts 'E.g. USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com ruby tests/test_ruby-manta.rb'
         exit
       end
 

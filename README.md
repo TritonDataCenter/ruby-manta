@@ -60,7 +60,6 @@ If you're like the author, examples are worth reams of explanation. Here,
 hurried friend, is an example demonstrating some of ruby-manta's usage:
 
 ````` ruby
-    require 'rubygems'
     require 'ruby-manta'
 
     # You'll need to provide these four environment variables to run this
@@ -161,8 +160,8 @@ If you're one of the chaps using Ruby 1.9.*, life is easy:
 
 Done.
 
-If you're of a more conservative bent and are using Ruby 1.8.*, there might
-be a (mostly-)harmless HTTPClient RDoc error; ignore it.
+Ruby 1.8.7 was end-of-life'd on June, 2013. As a result, ruby-manta no longer
+supports it either.
 
 
 
