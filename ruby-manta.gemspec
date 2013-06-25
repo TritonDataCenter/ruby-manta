@@ -3,7 +3,7 @@ require File.expand_path('../lib/version', __FILE__)
 Gem::Specification.new do |s|
   s.name        = 'ruby-manta'
   s.version     = MantaClient::LIB_VERSION
-  s.date        = '2013-01-15'
+  s.date        = '2013-06-24'
   s.summary     = "Interface for Joyent's Manta service."
   s.description = "A simple low-abstraction layer which communicates with Joyent's Manta service." 
   s.authors     = ['Joyent']
