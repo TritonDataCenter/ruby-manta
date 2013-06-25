@@ -24,6 +24,7 @@ require 'digest'
 require 'time'
 require 'json'
 require 'cgi'
+require 'uri'
 
 require File.expand_path('../version', __FILE__)
 
@@ -676,7 +677,8 @@ class MantaClient
     end.join('&')
 
     method = method.to_s.upcase
-    host   = @host.split('/').last
+    host   = URI.encode(@host.split('/').last)
+    path   = URI.encode(path)
 
     plaintext = "#{method}\n#{host}\n#{path}\n#{encoded_args}"
     signature = @priv_key.sign(@digest, plaintext)
@@ -739,7 +741,7 @@ class MantaClient
   def obj_url(path)
     raise ArgumentError unless path =~ OBJ_PATH_REGEX
 
-    @host + path
+    URI.encode(@host + path)
   end
 
 
@@ -753,7 +755,7 @@ class MantaClient
              args.join('/')
            end
 
-    @host + path
+    URI.encode(@host + path)
   end
 
 
