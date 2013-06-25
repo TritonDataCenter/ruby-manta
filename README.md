@@ -154,9 +154,9 @@ unencrypted key.
 Installation
 ------------
 
-If you're one of the chaps using Ruby 1.9.*, life is easy:
+If you're one of the chaps using Ruby 1.9 or higher, life is easy:
 
-    gem install ruby-manta-1.0.1.gem
+    gem install ruby-manta
 
 Done.
 
