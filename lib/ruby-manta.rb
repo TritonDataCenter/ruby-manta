@@ -61,9 +61,10 @@ class MantaClient
                        'NotAcceptable', 'NotEnoughSpace', 'ParentNotDirectory',
                        'PreconditionFailed', 'PreSignedRequest',
                        'RequestEntityTooLarge', 'ResourceNotFound',
-                       'RootDirectory', 'ServiceUnavailable',
-                       'SourceObjectNotFound', 'SSLRequired', 'TaskInit',
-                       'UploadTimeout', 'UserDoesNotExist', 'UserTaskError',
+                       'RootDirectory', 'SecureTransportRequired',
+                       'ServiceUnavailable', 'SourceObjectNotFound',
+                       'SSLRequired', 'TaskInit', 'UploadTimeout',
+                       'UserDoesNotExist', 'UserTaskError',
                        # and errors that are specific to this class:
                        'CorruptResult', 'UnknownError',
                        'UnsupportedKey' ]
