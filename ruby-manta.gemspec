@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.authors     = ['Joyent']
   s.email       = 'marsell@joyent.com'
   s.homepage    = 'http://github.com/joyent/ruby-manta/'
+  s.license     = 'MIT'
 
   s.add_dependency('net-ssh', '>= 2.6.0')
   s.add_dependency('httpclient', '>= 2.3.0.1')
