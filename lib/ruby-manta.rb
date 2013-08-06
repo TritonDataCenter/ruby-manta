@@ -100,7 +100,7 @@ class MantaClient
       @digest_name = 'dsa-sha1'
       algorithm    = OpenSSL::PKey::DSA
     else
-      raise UnsupportedKeyError
+      raise UnsupportedKey
     end
 
     @priv_key    = algorithm.new(priv_key_data)
