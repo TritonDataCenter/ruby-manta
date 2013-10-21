@@ -650,11 +650,11 @@ class MantaClient
 
   # Generates a signed URL which can be used by unauthenticated users to
   # make a request to Manta at the given path. This is typically used to GET
-  # an object.
+  # an object, or to make a CORS preflighted PUT request.
   #
   # expires is a Time object or integer representing time after epoch; this
-  # determines how long the signed URL will be valid for. The method is the HTTP
-  # method (:get, :put, :post, :delete) the signed URL is allowed to be used
+  # determines how long the signed URL will be valid for. The method is either a single HTTP
+  # method (:get, :put, :post, :delete, :options) or a list of such methods that the signed URL is allowed to be used
   # for. The path must start with /<user>/stor. Lastly, the optional args is an
   # array containing pairs of query args that will be appended at the end of
   # the URL.
@@ -662,7 +662,8 @@ class MantaClient
   # The returned URL is signed, and can be used either over HTTP or HTTPS until
   # it reaches the expiry date.
   def gen_signed_url(expires, method, path, args=[])
-    raise ArgumentError unless [:get, :put, :post, :delete].include? method
+    methods = method.is_a?(Array) ? method : [method]
+    raise ArgumentError unless (methods - [:get, :put, :post, :delete, :options]).empty?
     raise ArgumentError unless path =~ OBJ_PATH_REGEX
 
     key_id = '/%s/keys/%s' % [@user, @fingerprint]
@@ -671,14 +672,16 @@ class MantaClient
     args.push([ 'algorithm', @digest_name ])
     args.push([ 'keyId',     key_id       ])
 
+    method = methods.map {|m| m.to_s.upcase }.sort.join(",")
+    host   = URI.encode(@host.split('/').last)
+    path   = URI.encode(path)
+
+    args.push(['method', method]) if methods.count > 1
+
     encoded_args = args.sort.map do |key, val|
       # to comply with RFC 3986
       CGI.escape(key.to_s) + '=' + CGI.escape(val.to_s)
     end.join('&')
-
-    method = method.to_s.upcase
-    host   = URI.encode(@host.split('/').last)
-    path   = URI.encode(path)
 
     plaintext = "#{method}\n#{host}\n#{path}\n#{encoded_args}"
     signature = @priv_key.sign(@digest, plaintext)

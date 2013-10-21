@@ -292,12 +292,25 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
   def test_signed_urls
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
+
+    client = HTTPClient.new
+    
+    put_url = @@client.gen_signed_url(Time.now + 500000, [:put, :options],
+                                      @@test_dir_path + '/obj1')
+
+    result = client.options("https://" + put_url, {
+      'Access-Control-Request-Headers' => 'access-control-allow-origin, accept, content-type',
+      'Access-Control-Request-Method' => 'PUT'
+    })
+
+    assert_equal result.status, 200
+
+    result = client.put("https://" + put_url, 'foo-data', { 'Content-Type' => 'text/plain' })
+    assert_equal result.status, 204
 
     url = @@client.gen_signed_url(Time.now + 500000, :get,
                                   @@test_dir_path + '/obj1')
 
-    client = HTTPClient.new
     result = client.get('http://' + url)
     assert_equal result.body, 'foo-data'
   end
