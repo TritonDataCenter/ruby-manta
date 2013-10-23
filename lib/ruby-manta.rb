@@ -297,10 +297,8 @@ class MantaClient
         return true, result.headers if method == :head
 
         json_chunks = result.body.split("\n")
-        sent_num_entries = result.headers['Result-Set-Size'].to_i
 
-        if (json_chunks.size != sent_num_entries && json_chunks.size != limit) ||
-           json_chunks.size > limit
+        if json_chunks.size > limit
           raise CorruptResult
         end
 
