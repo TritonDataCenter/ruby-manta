@@ -178,6 +178,15 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
+  def test_root_directory
+    result, headers = @@client.list_directory('/' + @@user)
+    assert headers.is_a? Hash
+    assert_equal result.size, 4
+    assert_equal result.map { |r| r['name'] }.sort, ['jobs', 'public', 'reports', 'stor']
+  end
+
+
+
   def test_objects
     result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
     assert_equal result, true
