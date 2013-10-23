@@ -651,11 +651,11 @@ class MantaClient
   # an object, or to make a CORS preflighted PUT request.
   #
   # expires is a Time object or integer representing time after epoch; this
-  # determines how long the signed URL will be valid for. The method is either a single HTTP
-  # method (:get, :put, :post, :delete, :options) or a list of such methods that the signed URL is allowed to be used
-  # for. The path must start with /<user>/stor. Lastly, the optional args is an
-  # array containing pairs of query args that will be appended at the end of
-  # the URL.
+  # determines how long the signed URL will be valid for. The method is either a
+  # single HTTP method (:get, :put, :post, :delete, :options) or a list of such
+  # methods that the signed URL is allowed to be used for. The path must start
+  # with /<user>/stor. Lastly, the optional args is an array containing pairs of
+  # query args that will be appended at the end of the URL.
   #
   # The returned URL is signed, and can be used either over HTTP or HTTPS until
   # it reaches the expiry date.
