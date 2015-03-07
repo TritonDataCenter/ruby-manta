@@ -312,6 +312,46 @@ class MantaClient
   end
 
 
+  # Finds all files recursively under a given directory. Optionally, a regular
+  # expression can be specified and used to filter the results returned.
+  def find(dir_path, opts = {})
+    regex = opts.key?(:regex) ? opts[:regex] : nil
+
+    # We should always be doing GET because switching between methods is used
+    # within this function.
+    opts.delete(:head)
+
+    begin
+      exists = list_directory(dir_path, head: true).first
+    rescue
+      exists = false
+    end
+
+    return [] unless exists
+
+    response = client.list_directory(dir_path, opts)
+    listing = response.first
+
+    listing.inject([]) do |memo, obj|
+      if obj['type'] == 'dir_path'
+        sub_dir = "#{dir_path}/#{obj['name']}"
+        sub_search = find(sub_dir, regex)
+        memo.push(*sub_search)
+      end
+
+      if obj['type'] == 'object'
+        file = "#{dir_path}/#{obj['name']}"
+
+        if !regex || obj['name'].match(regex)
+          memo.push file
+        end
+      end
+
+      memo
+    end
+  end
+
+
 
   # Removes a directory from Manta at a given path.
   #

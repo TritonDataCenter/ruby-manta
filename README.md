@@ -183,7 +183,7 @@ see his image.png? In this case there is also the "public" space:
 Signed URLs
 -----------
 
-Objects put in the public space are accessible by everyone. Objects in the 
+Objects put in the public space are accessible by everyone. Objects in the
 private space are only accessible by individuals authenticated and authorized
 by Manta. Manta also supports temporary signed URLs that allow unauthenticated
 individuals to operate on private objects, until the link expires. See
@@ -438,6 +438,20 @@ Examples:
                                        :head => true)
 `````
 
+
+
+find(dir_path, _options_)
+-----------------------
+
+Finds all Manta objects underneath a given path,
+
+The path must be a valid directory path and point at an actual directory.
+
+The path must be a valid directory path and point at an actual directory.
+:limit optionally changes the maximum number of entries; the default is 1000.
+If given :marker, an object name in the directory, returned directory entries
+will begin from that point. :regex => can optionally be passed in to filter
+filenames by a given regular expression.
 
 
 delete_directory(dir_path, _options_)
