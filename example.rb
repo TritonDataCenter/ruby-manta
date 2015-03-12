@@ -1,19 +1,24 @@
-require 'ruby-manta'
+require_relative 'lib/ruby-manta'
 
 # You'll need to provide these four environment variables to run this
 # example. E.g.:
-# USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com DIR=. ruby example.rb
-host       = ENV['HOST']
-user       = ENV['USER']
-priv_key   = ENV['KEY' ]
-upload_dir = ENV['DIR' ]
+# MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com LOCAL_DIR=. ruby example.rb
+host       = ENV['MANTA_URL']
+user       = ENV['MANTA_USER']
+priv_key   = ENV['MANTA_KEY' ]
+upload_dir = ENV['LOCAL_DIR' ]
+
+raise 'You must specify MANTA_URL' unless host
+raise 'You must specify MANTA_USER' unless user
+raise 'You must specify MANTA_KEY' unless priv_key
+raise 'You must specify LOCAL_DIR' unless upload_dir
 
 # Read in private key, create a MantaClient instance. MantaClient is
 # thread-safe and provides persistent connections with pooling, so you'll
 # only ever need a single instance of this in a program.
 priv_key_data = File.read(priv_key)
-client = MantaClient.new(host, user, priv_key_data,
-                         :disable_ssl_verification => true)
+client = RubyManta::MantaClient.new(host, user, priv_key_data,
+                                    :disable_ssl_verification => true)
 
 # Create an directory in Manta solely for this example run.
 dir_path = '/' + user + '/stor/ruby-manta-example'

@@ -64,19 +64,19 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
 
     # You'll need to provide these four environment variables to run this
     # example. E.g.:
-    # USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com DIR=. \
+    # MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com LOCAL_DIR=. \
     #   ruby example.rb
-    host       = ENV['HOST']
-    user       = ENV['USER']
-    priv_key   = ENV['KEY' ]
-    upload_dir = ENV['DIR' ]
+    host       = ENV['MANTA_URL']
+    user       = ENV['MANTA_USER']
+    priv_key   = ENV['MANTA_KEY' ]
+    upload_dir = ENV['LOCAL_DIR' ]
 
     # Read in private key, create a MantaClient instance. MantaClient is
     # thread-safe and provides persistent connections with pooling, so you'll
     # only ever need a single instance of this in a program.
     priv_key_data = File.read(priv_key)
-    client = MantaClient.new(host, user, priv_key_data,
-                             :disable_ssl_verification => true)
+    client = RubyManta::MantaClient.new(host, user, priv_key_data,
+                                        :disable_ssl_verification => true)
 
     # Create an directory in Manta solely for this example run.
     dir_path = '/' + user + '/stor/ruby-manta-example'
@@ -312,8 +312,8 @@ Example:
 ````` ruby
 
     priv_key_data = File.read('/home/john/.ssh/john')
-    client = MantaClient.new('https://manta.joyentcloud.com', 'john',
-                             priv_key_data, :disable_ssl_verification => true)
+    client = RubyManta::MantaClient.new('https://manta.joyentcloud.com', 'john',
+                                        priv_key_data, :disable_ssl_verification => true)
 `````
 
 

@@ -1,28 +1,25 @@
 require 'minitest/autorun'
-require 'httpclient'
-require File.expand_path('../../lib/ruby-manta', __FILE__)
+require_relative '../../lib/ruby-manta'
 
-
-
-class TestMantaClient < MiniTest::Unit::TestCase
+class TestMantaClient < Minitest::Test
   @@client = nil
   @@user   = nil
 
   def setup
     if ! @@client
-      host   = ENV['MANTA_HOST']
+      host   = ENV['MANTA_URL']
       key    = ENV['MANTA_KEY' ]
       @@user = ENV['MANTA_USER']
 
       unless host && key && @@user
         $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
-        $stderr.puts 'E.g. MANTA_USER=john MANTA_KEY=~/.ssh/john MANTA_HOST=https://us-east.manta.joyent.com ruby tests/test_ruby-manta.rb'
+        $stderr.puts 'E.g. MANTA_USER=john MANTA_KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com bundle exec rake test'
         exit
       end
 
       priv_key_data = File.read(key)
-      @@client = MantaClient.new(host, @@user, priv_key_data,
-                                 :disable_ssl_verification => true)
+      @@client = RubyManta::MantaClient.new(host, @@user, priv_key_data,
+                                            :disable_ssl_verification => true)
 
       @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
@@ -46,7 +43,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     end
 
     @@client.delete_directory(@@test_dir_path)
-  rescue MantaClient::ResourceNotFound
+  rescue RubyManta::MantaClient::ResourceNotFound
   end
 
 
@@ -152,7 +149,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.delete_directory(@@test_dir_path)
       assert false
-    rescue MantaClient::DirectoryNotEmpty
+    rescue RubyManta::MantaClient::DirectoryNotEmpty
     end
 
     @@client.delete_directory(@@test_dir_path + '/dir1')
@@ -166,13 +163,13 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.list_directory(@@test_dir_path + '/does-not-exist')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.put_directory(@@test_dir_path + '/dir1')
       assert false
-    rescue MantaClient::DirectoryDoesNotExist
+    rescue RubyManta::MantaClient::DirectoryDoesNotExist
     end
   end
 
@@ -212,19 +209,19 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
                           :durability_level => 999)
       assert false
-    rescue MantaClient::InvalidDurabilityLevel
+    rescue RubyManta::MantaClient::InvalidDurabilityLevel
     end
 
     begin
       @@client.get_object(@@test_dir_path + '/does-not-exist')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.delete_object(@@test_dir_path + '/does-not-exist')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     result, headers = @@client.delete_object(@@test_dir_path + '/obj1')
@@ -235,7 +232,9 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
   def test_public
-    host = ENV['HOST'].gsub('https', 'http')
+    fail 'MANTA_URL must be specified' unless ENV['MANTA_URL']
+
+    host = ENV['MANTA_URL'].gsub('https', 'http')
     test_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
 
     @@client.put_directory(test_pub_dir_path)
@@ -331,7 +330,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@client.put_snaplink(@@test_dir_path + '/obj1',
                             @@test_dir_path + '/obj2')
       assert false
-    rescue MantaClient::SourceObjectNotFound
+    rescue RubyManta::MantaClient::SourceObjectNotFound
     end
 
     @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
@@ -352,17 +351,25 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_reports
+  def test_referencing_invalid_reports_dir
     begin
       @@client.list_directory('/%s/reportse' % @@user)
       assert fail
     rescue ArgumentError
+      assert true
     end
+  end
 
+
+
+  def test_reports
     result, headers = @@client.list_directory('/%s/reports' % @@user)
     assert headers.is_a? Hash
     assert result.is_a? Array
-    assert result.length > 0
+
+    if result.length < 1
+      skip 'Usage directory has not been created yet'
+    end
 
     result, headers = @@client.list_directory('/%s/reports/usage' % @@user)
     assert headers.is_a? Hash
@@ -386,7 +393,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
                           :if_modified_since => modified)
       assert fail
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1')
@@ -406,7 +413,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
                           :if_none_match => etag)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1')
@@ -423,7 +430,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.get_object(@@test_dir_path + '/obj1', :if_match => etag)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     etag     = headers['Etag']
@@ -449,7 +456,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
                             @@test_dir_path + '/obj2',
                             :if_none_match => etag)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
@@ -463,7 +470,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
                             @@test_dir_path + '/obj3',
                             :if_modified_since => modified)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     @@client.put_snaplink(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
@@ -479,7 +486,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.delete_object(@@test_dir_path + '/obj1', :if_none_match => etag)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     result, _ = @@client.delete_object(@@test_dir_path + '/obj1', :if_match => etag)
@@ -490,13 +497,13 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now - 10000)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     begin
       @@client.delete_object(@@test_dir_path + '/obj3', :if_modified_since => Time.now)
       assert false
-    rescue MantaClient::PreconditionFailed
+    rescue RubyManta::MantaClient::PreconditionFailed
     end
 
     @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now)
@@ -507,7 +514,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       begin
         @@client.get_object(@@test_dir_path + obj_name)
         assert false
-      rescue MantaClient::ResourceNotFound
+      rescue RubyManta::MantaClient::ResourceNotFound
       end
     end
   end
@@ -599,31 +606,31 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.get_job_input(path + 'a')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.get_job_output(path + 'a')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.get_job_failures(path + 'a')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.get_job_errors(path + 'a')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     begin
       @@client.end_job_input(path + 'a')
       assert false
-    rescue MantaClient::ResourceNotFound
+    rescue RubyManta::MantaClient::ResourceNotFound
     end
 
     result, headers = @@client.end_job_input(path)
@@ -669,7 +676,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     begin
       @@client.cancel_job(path)
       assert fail
-    rescue MantaClient::InvalidJobState
+    rescue RubyManta::MantaClient::InvalidJobState
     end
   end
 end
