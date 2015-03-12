@@ -10,9 +10,9 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
   def setup
     if ! @@client
-      host   = ENV['HOST']
-      key    = ENV['KEY' ]
-      @@user = ENV['USER']
+      host   = ENV['MANTA_HOST']
+      key    = ENV['MANTA_KEY' ]
+      @@user = ENV['MANTA_USER']
 
       unless host && key && @@user
         $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
@@ -27,7 +27,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
 
-    teardown() 
+    teardown()
 
     @@client.put_directory(@@test_dir_path)
   end
@@ -303,7 +303,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
   def test_signed_urls
 
     client = HTTPClient.new
-    
+
     put_url = @@client.gen_signed_url(Time.now + 500000, [:put, :options],
                                       @@test_dir_path + '/obj1')
 
@@ -342,10 +342,10 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert headers.is_a? Hash
 
     @@client.put_object(@@test_dir_path + '/obj1', 'bar-data')
-   
+
     result, _ = @@client.get_object(@@test_dir_path + '/obj1')
     assert_equal result, 'bar-data'
-   
+
     result, _ = @@client.get_object(@@test_dir_path + '/obj2')
     assert_equal result, 'foo-data'
   end
