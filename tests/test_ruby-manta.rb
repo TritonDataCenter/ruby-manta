@@ -16,7 +16,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
       unless host && key && @@user
         $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
-        $stderr.puts 'E.g. USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com ruby tests/test_ruby-manta.rb'
+        $stderr.puts 'E.g. MANTA_USER=john MANTA_KEY=~/.ssh/john MANTA_HOST=https://us-east.manta.joyent.com ruby tests/test_ruby-manta.rb'
         exit
       end
 
