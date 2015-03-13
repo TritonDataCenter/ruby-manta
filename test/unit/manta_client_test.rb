@@ -18,8 +18,16 @@ class TestMantaClient < Minitest::Test
       end
 
       priv_key_data = File.read(key)
-      @@client = RubyManta::MantaClient.new(host, @@user, priv_key_data,
-                                            :disable_ssl_verification => true)
+
+      opts = {
+          disable_ssl_verification: true
+      }
+
+      if ENV.key?('MANTA_SUBUSER')
+        opts[:subuser] = ENV['MANTA_SUBUSER']
+      end
+
+      @@client = RubyManta::MantaClient.new(host, @@user, priv_key_data, opts)
 
       @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
@@ -176,6 +184,10 @@ class TestMantaClient < Minitest::Test
 
 
   def test_root_directory
+    if ENV['MANTA_SUBUSER']
+      skip("Subusers can't get access to the root directory")
+    end
+
     result, headers = @@client.list_directory('/' + @@user)
     assert headers.is_a? Hash
     assert_equal result.size, 4
@@ -311,10 +323,10 @@ class TestMantaClient < Minitest::Test
       'Access-Control-Request-Method' => 'PUT'
     })
 
-    assert_equal result.status, 200
+    assert_equal 200, result.status, "Signed URL Failed: #{result.dump}"
 
     result = client.put("https://" + put_url, 'foo-data', { 'Content-Type' => 'text/plain' })
-    assert_equal result.status, 204
+    assert_equal 204, result.status
 
     url = @@client.gen_signed_url(Time.now + 500000, :get,
                                   @@test_dir_path + '/obj1')
@@ -529,8 +541,12 @@ class TestMantaClient < Minitest::Test
     assert headers.is_a? Hash
 
     result.each do |entry|
-      path = '/%s/jobs/%s' % [ @@user, entry['name'] ]
-      @@client.cancel_job(path)
+      path = '/%s/jobs/%s' % [ @@client.user, entry['name'] ]
+
+      begin
+        @@client.cancel_job(path)
+      rescue
+      end
     end
 
     begin

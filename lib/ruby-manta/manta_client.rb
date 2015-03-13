@@ -87,6 +87,7 @@ module RubyManta
 
       @host        = host
       @user        = user
+      @subuser     = opts[:subuser] ? opts[:subuser] : nil
 
       @attempts = opts[:attempts] || DEFAULT_ATTEMPTS
       raise ArgumentError unless @attempts > 0
@@ -113,7 +114,7 @@ module RubyManta
       @client.receive_timeout = opts[:receive_timeout] || DEFAULT_RECEIVE_TIMEOUT
       @client.ssl_config.verify_mode = nil if opts[:disable_ssl_verification]
 
-      @job_base  = '/' + user + '/jobs'
+      @job_base  = '/' + @user + '/jobs'
     end
 
 
@@ -704,7 +705,7 @@ module RubyManta
       raise ArgumentError unless (methods - [:get, :put, :post, :delete, :options]).empty?
       raise ArgumentError unless path =~ OBJ_PATH_REGEX
 
-      key_id = '/%s/keys/%s' % [@user, @fingerprint]
+      key_id = '/%s/keys/%s' % [user_path, @fingerprint]
 
       args.push([ 'expires',   expires.to_i ])
       args.push([ 'algorithm', @digest_name ])
@@ -734,6 +735,14 @@ module RubyManta
     class MantaClientError < StandardError; end
     for class_name in ERROR_CLASSES
       MantaClient.const_set(class_name, Class.new(MantaClientError))
+    end
+
+
+
+    # Creates a qualified user path consisting of the user and subuser if the
+    # subuser is present. Otherwise, it returns the user
+    def user_path
+      @subuser ? "#{@user}/#{@subuser}" : @user
     end
 
 
@@ -937,8 +946,6 @@ module RubyManta
       headers
     end
 
-
-
     # Given a chunk of data, creates an HTTP signature which the Manta service
     # understands and uses for authentication.
     def gen_signature(data)
@@ -947,7 +954,7 @@ module RubyManta
       sig = @priv_key.sign(@digest, data)
       base64sig = Base64.strict_encode64(sig)
 
-      return HTTP_SIGNATURE % [@user, @fingerprint, @digest_name, base64sig]
+      return HTTP_SIGNATURE % [user_path, @fingerprint, @digest_name, base64sig]
     end
 
 
