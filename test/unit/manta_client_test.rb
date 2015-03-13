@@ -1,6 +1,9 @@
 require 'minitest/autorun'
 require_relative '../../lib/ruby-manta'
 
+require 'openssl'
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+
 class TestMantaClient < Minitest::Test
   @@client = nil
   @@user   = nil
@@ -545,8 +548,8 @@ class TestMantaClient < Minitest::Test
 
       begin
         @@client.cancel_job(path)
-      rescue
-        skip('Unable to cancel jobs')
+      rescue => e
+        warn("Unable to cancel jobs: #{e.message}")
       end
     end
 

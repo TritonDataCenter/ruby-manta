@@ -525,11 +525,25 @@ module RubyManta
     # corruption errors, more attempts will be made; the number of attempts can
     # be altered by passing in :attempts.
     def cancel_job(job_path, opts = {})
-      url     = job_url(job_path, '/live/cancel')
+      url     = job_url(job_path, 'live/cancel')
+
+      body = '{}'
+
+      opts[:data] = body
+
       headers = gen_headers(opts)
 
+      headers << [ 'Accept', 'application/json' ]
+      headers << [ 'Content-Type', 'application/json']
+      headers << [ 'Content-Length', body.bytesize ]
+
+      args = {
+          header: headers,
+          body: body
+      }
+
       attempt(opts[:attempts]) do
-        result = @client.post(url, nil, headers)
+        result = @client.post(url, args)
         raise unless result.is_a? HTTP::Message
 
         return true, result.headers if result.status == 202
