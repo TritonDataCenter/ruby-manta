@@ -335,16 +335,16 @@ class TestMantaClient < Minitest::Test
     assert_equal result.body, 'foo-data'
   end
 
-
-
-  def test_snaplinks
+  def test_snaplink_not_found
     begin
       @@client.put_snaplink(@@test_dir_path + '/obj1',
                             @@test_dir_path + '/obj2')
       assert false
     rescue RubyManta::MantaClient::SourceObjectNotFound
     end
+  end
 
+  def test_snaplinks
     @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
 
     result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
