@@ -313,7 +313,7 @@ module RubyManta
     end
 
 
-    # Finds all files recursively under a given directory. Optionally, a regular
+    # Finds all objects recursively under a given directory. Optionally, a regular
     # expression can be specified and used to filter the results returned.
     def find(dir_path, opts = {})
       regex = opts.key?(:regex) ? opts[:regex] : nil
@@ -330,7 +330,7 @@ module RubyManta
 
       return [] unless exists
 
-      response = client.list_directory(dir_path, opts)
+      response = list_directory(dir_path, opts)
       listing = response.first
 
       listing.inject([]) do |memo, obj|

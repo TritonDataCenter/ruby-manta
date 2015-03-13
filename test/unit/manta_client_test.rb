@@ -541,11 +541,12 @@ class TestMantaClient < Minitest::Test
     assert headers.is_a? Hash
 
     result.each do |entry|
-      path = '/%s/jobs/%s' % [ @@client.user, entry['name'] ]
+      path = '/%s/jobs/%s' % [ @@user, entry['name'] ]
 
       begin
         @@client.cancel_job(path)
       rescue
+        skip('Unable to cancel jobs')
       end
     end
 
@@ -556,7 +557,12 @@ class TestMantaClient < Minitest::Test
     end
 
     result, headers = @@client.list_jobs(:running)
-    assert_equal result, []
+
+    unless result.empty?
+      skip "We can't run a job test if we have jobs running because it becomes " +
+           'a difficult coordination problem.'
+    end
+
     assert headers.is_a? Hash
 
     path, headers  = @@client.create_job({ :phases => [{ :exec => 'grep foo' }] })
@@ -693,6 +699,62 @@ class TestMantaClient < Minitest::Test
       @@client.cancel_job(path)
       assert fail
     rescue RubyManta::MantaClient::InvalidJobState
+    end
+  end
+
+  def test_find
+    copies = 15
+
+    begin
+      copies.times do |i|
+        @@client.put_object(@@test_dir_path + "/find_object_#{i}", 'test_find')
+      end
+
+      results = @@client.find(@@test_dir_path)
+
+      assert_equal copies, results.length
+
+      copies.times do |i|
+        assert results.include? @@test_dir_path + "/find_object_#{i}"
+      end
+    ensure
+      copies.times do |i|
+        result, headers = @@client.delete_object(@@test_dir_path + "/find_object_#{i}")
+        assert_equal result, true
+        assert headers.is_a? Hash
+      end
+    end
+  end
+
+  def test_find_regex
+    copies = 15
+
+    begin
+      copies.times do |i|
+        @@client.put_object(@@test_dir_path + "/find_object_#{i}", 'test_find_regex')
+      end
+
+      @@client.put_object(@@test_dir_path + '/dog_biscuit', 'dont match me')
+
+      results = @@client.find(@@test_dir_path, regex: 'find_object_.*')
+
+      assert_equal copies, results.length
+
+      copies.times do |i|
+        assert results.include? @@test_dir_path + "/find_object_#{i}"
+      end
+
+      refute results.include? @@test_dir_path + '/dog_biscuit'
+    ensure
+      copies.times do |i|
+        result, headers = @@client.delete_object(@@test_dir_path + "/find_object_#{i}")
+        assert_equal result, true
+        assert headers.is_a? Hash
+      end
+
+      result, headers = @@client.delete_object(@@test_dir_path + "/dog_biscuit")
+      assert_equal result, true
+      assert headers.is_a? Hash
     end
   end
 end

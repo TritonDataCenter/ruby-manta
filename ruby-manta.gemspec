@@ -11,11 +11,11 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/joyent/ruby-manta/'
   s.license     = 'MIT'
 
-  s.add_dependency             'net-ssh', '>= 2.6.0'
+  s.add_dependency             'net-ssh',    '>= 2.6.0'
   s.add_dependency             'httpclient', '>= 2.3.0.1'
 
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'minitest', '~> 5.5.1'
+  s.add_development_dependency 'minitest',   '~> 5.5.1'
 
   s.files       = ['LICENSE',
                    'README.md',
@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
                    'example.rb',
                    'lib/ruby-manta/version.rb',
                    'lib/ruby-manta/manta_client.rb',
-                   'test/manta_client_test.rb']
+                   'test/unit/manta_client_test.rb']
 
   s.test_files  = s.files.grep(%r{^test})
   s.require_paths = %w{lib}
