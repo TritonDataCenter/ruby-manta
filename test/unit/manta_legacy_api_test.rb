@@ -3,6 +3,9 @@ require_relative '../../lib/ruby-manta'
 
 
 
+##
+# Test class that verifies that the MantaClient is still compatible with the
+# 1.x.x API.
 class TestDeprecatedMantaClientApi < Minitest::Test
   @@client = nil
   @@user   = nil
@@ -14,664 +17,118 @@ class TestDeprecatedMantaClientApi < Minitest::Test
       @@user = ENV['MANTA_USER']
 
       unless host && key && @@user
-        $stderr.puts 'Require MANTA_URL, MANTA_USER and MANTA_KEY env variables to run tests.'
-        $stderr.puts 'E.g. MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com ruby tests/test_deprecated_ruby-manta.rb'
+        $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
+        $stderr.puts 'E.g. MANTA_USER=john MANTA_KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com bundle exec rake test'
         exit
       end
 
       priv_key_data = File.read(key)
-      @@client = MantaClient.new(host, @@user, priv_key_data,
-                                 :disable_ssl_verification => true)
 
-      @@test_deprecated_dir_path = '/%s/stor/ruby-manta-test' % @@user
+      opts = {
+          disable_ssl_verification: true
+      }
+
+      if ENV.key?('MANTA_SUBUSER')
+        opts[:subuser] = ENV['MANTA_SUBUSER']
+      end
+
+      @@client = MantaClient.new(host, @@user, priv_key_data, opts)
+
+      @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
 
     teardown()
 
-    @@client.put_directory(@@test_deprecated_dir_path)
+    @@client.put_directory(@@test_dir_path)
   end
 
-
-
-  def teardown
-    listing, _ = @@client.list_directory(@@test_deprecated_dir_path)
-    listing.each do |entry, _|
-      path = @@test_deprecated_dir_path + '/' + entry['name']
-      if entry['type'] == 'directory'
-        @@client.delete_directory(path)
-      else
-        @@client.delete_object(path)
-      end
-    end
-
-    @@client.delete_directory(@@test_deprecated_dir_path)
-  rescue MantaClient::ResourceNotFound
+  def test_put_object
+    assert @@client.respond_to? :put_object
+    assert -3, @@client.method(:put_object).arity
   end
 
-
-
-  def test_deprecated_paths
-    def check(&blk)
-      begin
-        yield blk
-        assert false
-      rescue ArgumentError
-      end
-    end
-
-    good_obj_path = "/#{@@user}/stor/ruby-manta-test"
-    bad_obj_path  = "/#{@@user}/stora/ruby-manta-test"
-
-    check { @@client.put_directory(bad_obj_path)            }
-    check { @@client.put_object(bad_obj_path, 'asd')        }
-    check { @@client.get_object(bad_obj_path)               }
-    check { @@client.delete_object(bad_obj_path)            }
-    check { @@client.put_directory(bad_obj_path)            }
-    check { @@client.list_directory(bad_obj_path)           }
-    check { @@client.delete_directory(bad_obj_path)         }
-    check { @@client.put_snaplink(good_obj_path, bad_obj_path)  }
-    check { @@client.put_snaplink(bad_obj_path,  good_obj_path) }
-
-    good_job_path = "/#{@@user}/job/ruby-manta-test"
-    bad_job_path  = "/#{@@user}/joba/ruby-manta-test"
-
-    check { @@client.get_job(bad_job_path)                  }
-    check { @@client.get_job_errors(bad_job_path)           }
-    check { @@client.cancel_job(bad_job_path)               }
-    check { @@client.add_job_keys(bad_job_path,  [good_obj_path]) }
-    check { @@client.add_job_keys(good_job_path, [bad_obj_path])  }
-    check { @@client.end_job_input(bad_job_path)            }
-    check { @@client.get_job_input(bad_job_path)            }
-    check { @@client.get_job_output(bad_job_path)           }
-    check { @@client.get_job_failures(bad_job_path)         }
-    check { @@client.gen_signed_url(Time.now, :get, bad_obj_path) }
+  def test_get_object
+    assert @@client.respond_to? :get_object
+    assert -2, @@client.method(:get_object).arity
   end
 
-
-
-  def test_deprecated_directories
-    result, headers = @@client.put_directory(@@test_deprecated_dir_path)
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    # since idempotent
-    result, headers = @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'obj1-data')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj2', 'obj2-data')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.list_directory(@@test_deprecated_dir_path)
-    assert headers.is_a? Hash
-    assert_equal result.size, 3
-
-    assert_equal result[0]['name'], 'dir1'
-    assert_equal result[0]['type'], 'directory'
-    assert result[0]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
-
-    assert_equal result[1]['name'], 'obj1'
-    assert_equal result[1]['type'], 'object'
-    assert_equal result[1]['size'], 9
-    assert result[1]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
-
-    assert_equal result[2]['name'], 'obj2'
-    assert_equal result[2]['type'], 'object'
-    assert_equal result[2]['size'], 9
-    assert result[2]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
-
-    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit => 2)
-    assert_equal result.size, 2
-    assert_equal result[0]['name'], 'dir1'
-    assert_equal result[1]['name'], 'obj1'
-
-    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit => 1)
-    assert_equal result.size, 1
-    assert_equal result[0]['name'], 'dir1'
-
-    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit  => 2,
-                                        :marker => 'obj1')
-    assert_equal result.size, 2
-    assert_equal result[0]['name'], 'obj1'
-    assert_equal result[1]['name'], 'obj2'
-
-    result, headers = @@client.list_directory(@@test_deprecated_dir_path, :head => true)
-    assert_equal result, true
-    assert_equal headers['Result-Set-Size'], '3'
-
-    begin
-      @@client.delete_directory(@@test_deprecated_dir_path)
-      assert false
-    rescue MantaClient::DirectoryNotEmpty
-    end
-
-    @@client.delete_directory(@@test_deprecated_dir_path + '/dir1')
-    @@client.delete_object(@@test_deprecated_dir_path + '/obj1')
-    @@client.delete_object(@@test_deprecated_dir_path + '/obj2')
-
-    result, headers = @@client.delete_directory(@@test_deprecated_dir_path)
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    begin
-      @@client.list_directory(@@test_deprecated_dir_path + '/does-not-exist')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
-      assert false
-    rescue MantaClient::DirectoryDoesNotExist
-    end
+  def test_delete_object
+    assert @@client.respond_to? :delete_object
+    assert -2, @@client.method(:delete_object).arity
   end
 
-
-
-  def test_deprecated_root_directory
-    result, headers = @@client.list_directory('/' + @@user)
-    assert headers.is_a? Hash
-    assert_equal result.size, 4
-    assert_equal result.map { |r| r['name'] }.sort, ['jobs', 'public', 'reports', 'stor']
+  def test_put_directory
+    assert @@client.respond_to? :put_directory
+    assert -2, @@client.method(:put_directory).arity
   end
 
-
-
-  def test_deprecated_objects
-    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'foo-data'
-    assert_equal headers['Content-Type'], 'application/x-www-form-urlencoded'
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
-                        :content_type     => 'application/wacky',
-                        :durability_level => 3)
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'bar-data'
-    assert_equal headers['Content-Type'], 'application/wacky'
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1', :head => true)
-    assert_equal result, true
-    assert_equal headers['Content-Type'], 'application/wacky'
-
-    begin
-      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
-                          :durability_level => 999)
-      assert false
-    rescue MantaClient::InvalidDurabilityLevel
-    end
-
-    begin
-      @@client.get_object(@@test_deprecated_dir_path + '/does-not-exist')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.delete_object(@@test_deprecated_dir_path + '/does-not-exist')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    result, headers = @@client.delete_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, true
-    assert headers.is_a? Hash
+  def test_list_directory
+    assert @@client.respond_to? :list_directory
+    assert -2, @@client.method(:list_directory).arity
   end
 
-
-
-  def test_deprecated_public
-    host = ENV['MANTA_URL'].gsub('https', 'http')
-    test_deprecated_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
-
-    @@client.put_directory(test_deprecated_pub_dir_path)
-    @@client.put_object(test_deprecated_pub_dir_path + '/obj1', 'foo-data')
-
-    client = HTTPClient.new
-    client.ssl_config.verify_mode = nil  # temp hack
-    result = client.get(host + test_deprecated_pub_dir_path + '/obj1')
-    assert_equal result.body, 'foo-data'
-
-    @@client.delete_object(test_deprecated_pub_dir_path + '/obj1')
-    @@client.delete_directory(test_deprecated_pub_dir_path)
+  def test_delete_directory
+    assert @@client.respond_to? :delete_directory
+    assert -2, @@client.method(:delete_directory).arity
   end
 
-
-
-  def test_deprecated_cors
-    cors_args = {
-        :access_control_allow_credentials => true,
-        :access_control_allow_headers     => 'X-Random, X-Bar',
-        :access_control_allow_methods     => 'GET, POST, DELETE',
-        :access_control_allow_origin      => 'https://example.com:1234 http://127.0.0.1',
-        :access_control_expose_headers    => 'X-Last-Read, X-Foo',
-        :access_control_max_age           => 30
-    }
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data', cors_args)
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'foo-data'
-
-    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
-                        [ 'access-control-allow-origin',      'https://example.com:1234 http://127.0.0.1' ],
-                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
-                        [ 'access-control-max-age',           '30'                 ] ]
-      assert_equal headers[name], value
-    end
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
-                                          :origin => 'https://example.com:1234')
-
-    assert_equal result, 'foo-data'
-
-    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
-                        [ 'access-control-allow-origin',      nil                  ],
-                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
-                        [ 'access-control-max-age',           nil                  ]]
-      assert_equal headers[name], value
-    end
-
-    @@client.put_directory(@@test_deprecated_dir_path + '/dir', cors_args)
-
-    result, headers = @@client.list_directory(@@test_deprecated_dir_path + '/dir')
-
-    for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
-                        [ 'access-control-allow-origin',      'https://example.com:1234 http://127.0.0.1' ],
-                        [ 'access-control-expose-headers',    'x-foo, x-last-read' ],
-                        [ 'access-control-max-age',           '30'                 ] ]
-      assert_equal headers[name], value
-    end
+  def test_put_snaplink
+    assert @@client.respond_to? :put_snaplink
+    assert -3, @@client.method(:put_snaplink).arity
   end
 
-
-
-  def test_deprecated_signed_urls
-
-    client = HTTPClient.new
-
-    put_url = @@client.gen_signed_url(Time.now + 500000, [:put, :options],
-                                      @@test_deprecated_dir_path + '/obj1')
-
-    result = client.options("https://" + put_url, {
-                                                    'Access-Control-Request-Headers' => 'access-control-allow-origin, accept, content-type',
-                                                    'Access-Control-Request-Method' => 'PUT'
-                                                })
-
-    assert_equal result.status, 200
-
-    result = client.put("https://" + put_url, 'foo-data', { 'Content-Type' => 'text/plain' })
-    assert_equal result.status, 204
-
-    url = @@client.gen_signed_url(Time.now + 500000, :get,
-                                  @@test_deprecated_dir_path + '/obj1')
-
-    result = client.get('http://' + url)
-    assert_equal result.body, 'foo-data'
+  def test_create_job
+    assert @@client.respond_to? :create_job
+    assert -2, @@client.method(:create_job).arity
   end
 
-
-
-  def test_deprecated_snaplinks
-    begin
-      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                            @@test_deprecated_dir_path + '/obj2')
-      assert false
-    rescue MantaClient::SourceObjectNotFound
-    end
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
-
-    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                                            @@test_deprecated_dir_path + '/obj2')
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data')
-
-    result, _ = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'bar-data'
-
-    result, _ = @@client.get_object(@@test_deprecated_dir_path + '/obj2')
-    assert_equal result, 'foo-data'
+  def test_get_job
+    assert @@client.respond_to? :get_job
+    assert -2, @@client.method(:get_job).arity
   end
 
-
-
-  def test_deprecated_reports
-    begin
-      @@client.list_directory('/%s/reportse' % @@user)
-      assert fail
-    rescue ArgumentError
-    end
-
-    result, headers = @@client.list_directory('/%s/reports' % @@user)
-    assert headers.is_a? Hash
-    assert result.is_a? Array
-
-    if result.length < 1
-      skip 'Usage directory has not been created yet'
-    end
-
-    result, headers = @@client.list_directory('/%s/reports/usage' % @@user)
-    assert headers.is_a? Hash
-    assert result.is_a? Array
-    assert result.length > 0
+  def test_get_job_errors
+    assert @@client.respond_to? :get_job_errors
+    assert -2, @@client.method(:get_job_errors).arity
   end
 
-
-
-  def test_deprecated_conditionals_on_objects
-    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
-                                          :if_modified_since => Time.now)
-    assert_equal result, true
-
-    modified = headers['Last-Modified']
-    assert modified
-
-    sleep 1
-
-    begin
-      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
-                          :if_modified_since => modified)
-      assert fail
-    rescue MantaClient::PreconditionFailed
-    end
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'foo-data'
-    assert_equal headers['Last-Modified'], modified
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
-                        :if_unmodified_since => modified)
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'bar-data'
-    assert headers['Last-Modified'] != modified
-
-    etag = headers['Etag']
-
-    begin
-      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
-                          :if_none_match => etag)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'bar-data'
-    assert_equal headers['Etag'], etag
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
-                        :if_match => etag)
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
-    assert_equal result, 'foo-data'
-    assert headers['Etag'] != etag
-
-    begin
-      @@client.get_object(@@test_deprecated_dir_path + '/obj1', :if_match => etag)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    etag     = headers['Etag']
-    modified = headers['Last-Modified']
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
-                                          :if_match => etag)
-    assert_equal result, 'foo-data'
-    assert_equal headers['Etag'], etag
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
-                                          :if_none_match => etag)
-    assert_equal result, nil
-    assert_equal headers['Etag'], etag
-
-    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
-                                          :if_none_match => 'blahblah')
-    assert_equal result, 'foo-data'
-    assert_equal headers['Etag'], etag
-
-    begin
-      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                            @@test_deprecated_dir_path + '/obj2',
-                            :if_none_match => etag)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                                            @@test_deprecated_dir_path + '/obj2',
-                                            :if_match => etag)
-    assert true
-    assert_equal headers['Etag'], etag
-
-    begin
-      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                            @@test_deprecated_dir_path + '/obj3',
-                            :if_modified_since => modified)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1', @@test_deprecated_dir_path + '/obj3',
-                          :if_unmodified_since => modified)
-
-    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
-                                            @@test_deprecated_dir_path + '/obj4',
-                                            :if_unmodified_since => modified)
-    assert true
-
-    modified = headers['Last Modified']
-
-    begin
-      @@client.delete_object(@@test_deprecated_dir_path + '/obj1', :if_none_match => etag)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    result, _ = @@client.delete_object(@@test_deprecated_dir_path + '/obj1', :if_match => etag)
-    assert_equal result, true
-
-    sleep 1
-
-    begin
-      @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_unmodified_since => Time.now - 10000)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    begin
-      @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_modified_since => Time.now)
-      assert false
-    rescue MantaClient::PreconditionFailed
-    end
-
-    @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_unmodified_since => Time.now)
-    @@client.delete_object(@@test_deprecated_dir_path + '/obj4', :if_modified_since=> Time.now - 10000)
-
-
-    for obj_name in ['/obj1', '/obj3', '/obj4']
-      begin
-        @@client.get_object(@@test_deprecated_dir_path + obj_name)
-        assert false
-      rescue MantaClient::ResourceNotFound
-      end
-    end
+  def test_cancel_job
+    assert @@client.respond_to? :cancel_job
+    assert -2, @@client.method(:cancel_job).arity
   end
 
+  def test_add_job_keys
+    assert @@client.respond_to? :add_job_keys
+    assert -3, @@client.method(:add_job_keys).arity
+  end
 
+  def test_end_job_input
+    assert @@client.respond_to? :end_job_input
+    assert -2, @@client.method(:end_job_input).arity
+  end
 
-  # This test is definitely not pretty, but splitting it up will make it
-  # take much longer due to the redundant creation of jobs. Perhaps that's
-  # the wrong choice...
-  def test_deprecated_jobs
-    result, headers = @@client.list_jobs(:running)
-    assert headers.is_a? Hash
+  def test_get_job_input
+    assert @@client.respond_to? :get_job_input
+    assert -2, @@client.method(:get_job_input).arity
+  end
 
-    result.each do |entry|
-      path = '/%s/jobs/%s' % [ @@user, entry['name'] ]
-      @@client.cancel_job(path)
-    end
+  def test_get_job_output
+    assert @@client.respond_to? :get_job_output
+    assert -2, @@client.method(:get_job_output).arity
+  end
 
-    begin
-      @@client.create_job({})
-      assert false
-    rescue ArgumentError
-    end
+  def test_get_job_failures
+    assert @@client.respond_to? :get_job_failures
+    assert -2, @@client.method(:get_job_failures).arity
+  end
 
-    result, headers = @@client.list_jobs(:running)
-    assert_equal result, []
-    assert headers.is_a? Hash
+  def test_list_jobs
+    assert @@client.respond_to? :list_jobs
+    assert -2, @@client.method(:list_jobs).arity
+  end
 
-    path, headers  = @@client.create_job({ :phases => [{ :exec => 'grep foo' }] })
-    assert path =~ Regexp.new('^/' + @@user + '/jobs/.+')
-    assert headers.is_a? Hash
-
-    result, headers  = @@client.cancel_job(path)
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    path, _ = @@client.create_job({ :phases => [{ :exec => 'grep foo' }] })
-
-    result, _ = @@client.list_jobs(:all)
-    result.each do |job|
-      assert job['name' ] =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      assert job['mtime'] =~ /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/
-      assert_equal job['type'], 'directory'
-    end
-
-    assert result.size >= 1
-
-    begin
-      @@client.list_jobs(:some)
-      assert false
-    rescue ArgumentError
-    end
-
-    jobs, _ = @@client.list_jobs(:running)
-    assert_equal 1, jobs.size
-    assert_equal jobs[0]['type'], 'directory'
-    assert_equal jobs[0]['name'], path.split('/').last
-
-# Commented out until HEAD here by Manta
-#    jobs, headers = @@client.list_jobs(:running, :head => true)
-#    assert_equal jobs, true
-#    assert_equal headers['Result-Set-Size'], 1
-
-    job, headers = @@client.get_job(path)
-    assert headers.is_a? Hash
-    assert job['name'       ].is_a? String
-    assert job['phases'     ].is_a? Array
-    assert job['timeCreated'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)
-    assert_equal job['id'       ], path.split('/').last
-    assert_equal job['state'    ], 'running'
-    assert_equal job['cancelled'], false
-    assert_equal job['timeDone' ], nil
-
-    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
-    @@client.put_object(@@test_deprecated_dir_path + '/obj2', 'bar-data')
-
-    obj_key_paths = [@@test_deprecated_dir_path + '/obj1',
-                     @@test_deprecated_dir_path + '/obj2',
-                     @@test_deprecated_dir_path + '/obj3']
-
-    result, headers = @@client.add_job_keys(path, obj_key_paths)
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    result, headers = @@client.get_job_input(path)
-    assert_equal result.sort, obj_key_paths.sort
-    assert headers.is_a? Hash
-
-    begin
-      @@client.get_job_input(path + 'a')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.get_job_output(path + 'a')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.get_job_failures(path + 'a')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.get_job_errors(path + 'a')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    begin
-      @@client.end_job_input(path + 'a')
-      assert false
-    rescue MantaClient::ResourceNotFound
-    end
-
-    result, headers = @@client.end_job_input(path)
-    assert_equal result, true
-    assert headers.is_a? Hash
-
-    for i in (1...10)
-      job, _ = @@client.get_job(path)
-      break if job['state'] == 'done'
-      sleep 1
-    end
-
-    result, headers = @@client.get_job_output(path)
-    assert headers.is_a? Hash
-
-    result, _ = @@client.get_object(result.first)
-    assert_equal result, "foo-data\n"
-
-    result, headers = @@client.get_job_failures(path)
-    assert_equal result.sort, obj_key_paths.slice(1, 2).sort
-    assert headers.is_a? Hash
-
-    result, headers = @@client.get_job_errors(path)
-    assert_equal result.size, 2
-    assert headers.is_a? Hash
-
-    obj2_result, obj3_result = result.sort { |i,j| i['input'] <=> j['input'] }
-
-    assert obj2_result['what']
-    assert obj2_result['stderr']
-    assert_equal obj2_result['code'   ], 'UserTaskError'
-    assert_equal obj2_result['message'], 'user command exited with code 1'
-    assert_equal obj2_result['input'  ], obj_key_paths[1]
-    assert_equal obj2_result['phase'  ], '0'
-
-    assert obj3_result['what']
-    assert obj2_result['stderr']
-    assert_equal obj3_result['code'   ], 'ResourceNotFoundError'
-    assert obj3_result['message'] =~ /^no such object/
-    assert_equal obj3_result['input'  ], obj_key_paths[2]
-    assert_equal obj3_result['phase'  ], '0'
-
-    begin
-      @@client.cancel_job(path)
-      assert fail
-    rescue MantaClient::InvalidJobState
-    end
+  def test_gen_signed_url
+    assert @@client.respond_to? :gen_signed_url
+    assert -2, @@client.method(:gen_signed_url).arity
   end
 end
