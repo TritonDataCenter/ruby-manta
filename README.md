@@ -76,7 +76,9 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
     # only ever need a single instance of this in a program.
     priv_key_data = File.read(priv_key)
     client = RubyManta::MantaClient.new(host, user, priv_key_data,
-                                        :disable_ssl_verification => true)
+                                        :disable_ssl_verification => true,
+    #                                   :subuser => 'monte'
+                                        )
 
     # Create an directory in Manta solely for this example run.
     dir_path = '/' + user + '/stor/ruby-manta-example'
@@ -162,6 +164,15 @@ Done.
 
 Ruby 1.8.7 was end-of-life'd on June, 2013. As a result, ruby-manta no longer
 supports it either.
+
+
+
+Changes in 2.0.0
+----------------
+ * MantaClient was moved into the namespace RubyManta::MantaClient. Compatibility
+   with the namespaceless 1.0.0 MantaClient was maintained, but it may not be
+   there in the future, so please update your application code.
+ * Subuser support was added to the client.
 
 
 
