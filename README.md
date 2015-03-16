@@ -215,10 +215,37 @@ at the resulting objects.
 
 
 
+Subusers
+---------
+The Joyent public cloud and Smart Data Center now support subusers - that is
+users with their own unique ACLs who are managed by the primary account holder.
+It may be useful to have a Manta-specific subuser so that your applications do
+not have the primary account's credentials stored on their servers. This helps
+mitigate the risk if a system is compromised. You can find the ACLs needed to
+add a Manta only user on the
+[Joyent RBAC Rules Support Page](https://docs.joyent.com/jpc/rbac/rules#mantaactions).
+
+If you want to enable for Manta access for a single user, you will need to grant
+them:
+
+ * putdirectory
+ * getdirectory
+ * deletedirectory
+ * putobject
+ * getobject
+ * deleteobject
+ * putlink
+ * createjob
+ * listjobs
+ * getjob
+ * managejob
+
+
+
 The API
 =======
 
-A note on sematics
+A note on semantics
 ------------------
 
 All methods throw exceptions upon failure. If a method doesn't throw, the
