@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in spanx.gemspec
+# Specify your gem's dependencies in ruby-manta.gemspec
 gemspec

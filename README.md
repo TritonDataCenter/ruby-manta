@@ -64,8 +64,8 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
 
     # You'll need to provide these four environment variables to run this
     # example. E.g.:
-    # MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com LOCAL_DIR=. \
-    #   ruby example.rb
+    # MANTA_USER=john MANTA_KEY=~/.ssh/john \
+    # MANTA_URL=https://us-east.manta.joyent.com LOCAL_DIR=. ruby example.rb
     host       = ENV['MANTA_URL']
     user       = ENV['MANTA_USER']
     priv_key   = ENV['MANTA_KEY' ]
