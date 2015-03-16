@@ -1,22 +1,21 @@
 require 'minitest/autorun'
-require 'httpclient'
-require File.expand_path('../../lib/ruby-manta', __FILE__)
+require_relative '../../lib/ruby-manta'
 
 
 
-class TestMantaClient < MiniTest::Unit::TestCase
+class TestDeprecatedMantaClientApi < Minitest::Test
   @@client = nil
   @@user   = nil
 
   def setup
     if ! @@client
-      host   = ENV['HOST']
-      key    = ENV['KEY' ]
-      @@user = ENV['USER']
+      host   = ENV['MANTA_URL']
+      key    = ENV['MANTA_KEY' ]
+      @@user = ENV['MANTA_USER']
 
       unless host && key && @@user
-        $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
-        $stderr.puts 'E.g. USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com ruby tests/test_ruby-manta.rb'
+        $stderr.puts 'Require MANTA_URL, MANTA_USER and MANTA_KEY env variables to run tests.'
+        $stderr.puts 'E.g. MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com ruby tests/test_deprecated_ruby-manta.rb'
         exit
       end
 
@@ -24,20 +23,20 @@ class TestMantaClient < MiniTest::Unit::TestCase
       @@client = MantaClient.new(host, @@user, priv_key_data,
                                  :disable_ssl_verification => true)
 
-      @@test_dir_path = '/%s/stor/ruby-manta-test' % @@user
+      @@test_deprecated_dir_path = '/%s/stor/ruby-manta-test' % @@user
     end
 
-    teardown() 
+    teardown()
 
-    @@client.put_directory(@@test_dir_path)
+    @@client.put_directory(@@test_deprecated_dir_path)
   end
 
 
 
   def teardown
-    listing, _ = @@client.list_directory(@@test_dir_path)
+    listing, _ = @@client.list_directory(@@test_deprecated_dir_path)
     listing.each do |entry, _|
-      path = @@test_dir_path + '/' + entry['name']
+      path = @@test_deprecated_dir_path + '/' + entry['name']
       if entry['type'] == 'directory'
         @@client.delete_directory(path)
       else
@@ -45,13 +44,13 @@ class TestMantaClient < MiniTest::Unit::TestCase
       end
     end
 
-    @@client.delete_directory(@@test_dir_path)
+    @@client.delete_directory(@@test_deprecated_dir_path)
   rescue MantaClient::ResourceNotFound
   end
 
 
 
-  def test_paths
+  def test_deprecated_paths
     def check(&blk)
       begin
         yield blk
@@ -90,29 +89,29 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_directories
-    result, headers = @@client.put_directory(@@test_dir_path)
+  def test_deprecated_directories
+    result, headers = @@client.put_directory(@@test_deprecated_dir_path)
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, headers = @@client.put_directory(@@test_dir_path + '/dir1')
+    result, headers = @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
     assert_equal result, true
     assert headers.is_a? Hash
 
     # since idempotent
-    result, headers = @@client.put_directory(@@test_dir_path + '/dir1')
+    result, headers = @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'obj1-data')
+    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'obj1-data')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, headers = @@client.put_object(@@test_dir_path + '/obj2', 'obj2-data')
+    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj2', 'obj2-data')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, headers = @@client.list_directory(@@test_dir_path)
+    result, headers = @@client.list_directory(@@test_deprecated_dir_path)
     assert headers.is_a? Hash
     assert_equal result.size, 3
 
@@ -130,47 +129,47 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal result[2]['size'], 9
     assert result[2]['mtime'].match(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
 
-    result, _ = @@client.list_directory(@@test_dir_path, :limit => 2)
+    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit => 2)
     assert_equal result.size, 2
     assert_equal result[0]['name'], 'dir1'
     assert_equal result[1]['name'], 'obj1'
 
-    result, _ = @@client.list_directory(@@test_dir_path, :limit => 1)
+    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit => 1)
     assert_equal result.size, 1
     assert_equal result[0]['name'], 'dir1'
 
-    result, _ = @@client.list_directory(@@test_dir_path, :limit  => 2,
-                                                       :marker => 'obj1')
+    result, _ = @@client.list_directory(@@test_deprecated_dir_path, :limit  => 2,
+                                        :marker => 'obj1')
     assert_equal result.size, 2
     assert_equal result[0]['name'], 'obj1'
     assert_equal result[1]['name'], 'obj2'
 
-    result, headers = @@client.list_directory(@@test_dir_path, :head => true)
+    result, headers = @@client.list_directory(@@test_deprecated_dir_path, :head => true)
     assert_equal result, true
     assert_equal headers['Result-Set-Size'], '3'
 
     begin
-      @@client.delete_directory(@@test_dir_path)
+      @@client.delete_directory(@@test_deprecated_dir_path)
       assert false
     rescue MantaClient::DirectoryNotEmpty
     end
 
-    @@client.delete_directory(@@test_dir_path + '/dir1')
-    @@client.delete_object(@@test_dir_path + '/obj1')
-    @@client.delete_object(@@test_dir_path + '/obj2')
+    @@client.delete_directory(@@test_deprecated_dir_path + '/dir1')
+    @@client.delete_object(@@test_deprecated_dir_path + '/obj1')
+    @@client.delete_object(@@test_deprecated_dir_path + '/obj2')
 
-    result, headers = @@client.delete_directory(@@test_dir_path)
+    result, headers = @@client.delete_directory(@@test_deprecated_dir_path)
     assert_equal result, true
     assert headers.is_a? Hash
 
     begin
-      @@client.list_directory(@@test_dir_path + '/does-not-exist')
+      @@client.list_directory(@@test_deprecated_dir_path + '/does-not-exist')
       assert false
     rescue MantaClient::ResourceNotFound
     end
 
     begin
-      @@client.put_directory(@@test_dir_path + '/dir1')
+      @@client.put_directory(@@test_deprecated_dir_path + '/dir1')
       assert false
     rescue MantaClient::DirectoryDoesNotExist
     end
@@ -178,7 +177,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_root_directory
+  def test_deprecated_root_directory
     result, headers = @@client.list_directory('/' + @@user)
     assert headers.is_a? Hash
     assert_equal result.size, 4
@@ -187,84 +186,84 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_objects
-    result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
+  def test_deprecated_objects
+    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'foo-data'
     assert_equal headers['Content-Type'], 'application/x-www-form-urlencoded'
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
                         :content_type     => 'application/wacky',
                         :durability_level => 3)
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'bar-data'
     assert_equal headers['Content-Type'], 'application/wacky'
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1', :head => true)
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1', :head => true)
     assert_equal result, true
     assert_equal headers['Content-Type'], 'application/wacky'
 
     begin
-      @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
                           :durability_level => 999)
       assert false
     rescue MantaClient::InvalidDurabilityLevel
     end
 
     begin
-      @@client.get_object(@@test_dir_path + '/does-not-exist')
+      @@client.get_object(@@test_deprecated_dir_path + '/does-not-exist')
       assert false
     rescue MantaClient::ResourceNotFound
     end
 
     begin
-      @@client.delete_object(@@test_dir_path + '/does-not-exist')
+      @@client.delete_object(@@test_deprecated_dir_path + '/does-not-exist')
       assert false
     rescue MantaClient::ResourceNotFound
     end
 
-    result, headers = @@client.delete_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.delete_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, true
     assert headers.is_a? Hash
   end
 
 
 
-  def test_public
-    host = ENV['HOST'].gsub('https', 'http')
-    test_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
+  def test_deprecated_public
+    host = ENV['MANTA_URL'].gsub('https', 'http')
+    test_deprecated_pub_dir_path  = '/%s/public/ruby-manta-test' % @@user
 
-    @@client.put_directory(test_pub_dir_path)
-    @@client.put_object(test_pub_dir_path + '/obj1', 'foo-data')
+    @@client.put_directory(test_deprecated_pub_dir_path)
+    @@client.put_object(test_deprecated_pub_dir_path + '/obj1', 'foo-data')
 
     client = HTTPClient.new
     client.ssl_config.verify_mode = nil  # temp hack
-    result = client.get(host + test_pub_dir_path + '/obj1')
+    result = client.get(host + test_deprecated_pub_dir_path + '/obj1')
     assert_equal result.body, 'foo-data'
 
-    @@client.delete_object(test_pub_dir_path + '/obj1')
-    @@client.delete_directory(test_pub_dir_path)
+    @@client.delete_object(test_deprecated_pub_dir_path + '/obj1')
+    @@client.delete_directory(test_deprecated_pub_dir_path)
   end
 
 
 
-  def test_cors
+  def test_deprecated_cors
     cors_args = {
-      :access_control_allow_credentials => true,
-      :access_control_allow_headers     => 'X-Random, X-Bar',
-      :access_control_allow_methods     => 'GET, POST, DELETE',
-      :access_control_allow_origin      => 'https://example.com:1234 http://127.0.0.1',
-      :access_control_expose_headers    => 'X-Last-Read, X-Foo',
-      :access_control_max_age           => 30
+        :access_control_allow_credentials => true,
+        :access_control_allow_headers     => 'X-Random, X-Bar',
+        :access_control_allow_methods     => 'GET, POST, DELETE',
+        :access_control_allow_origin      => 'https://example.com:1234 http://127.0.0.1',
+        :access_control_expose_headers    => 'X-Last-Read, X-Foo',
+        :access_control_max_age           => 30
     }
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data', cors_args)
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data', cors_args)
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'foo-data'
 
     for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
@@ -274,7 +273,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
       assert_equal headers[name], value
     end
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
                                           :origin => 'https://example.com:1234')
 
     assert_equal result, 'foo-data'
@@ -286,9 +285,9 @@ class TestMantaClient < MiniTest::Unit::TestCase
       assert_equal headers[name], value
     end
 
-    @@client.put_directory(@@test_dir_path + '/dir', cors_args)
+    @@client.put_directory(@@test_deprecated_dir_path + '/dir', cors_args)
 
-    result, headers = @@client.list_directory(@@test_dir_path + '/dir')
+    result, headers = @@client.list_directory(@@test_deprecated_dir_path + '/dir')
 
     for name, value in [[ 'access-control-allow-methods',     'GET, POST, DELETE'  ],
                         [ 'access-control-allow-origin',      'https://example.com:1234 http://127.0.0.1' ],
@@ -300,17 +299,17 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_signed_urls
+  def test_deprecated_signed_urls
 
     client = HTTPClient.new
-    
+
     put_url = @@client.gen_signed_url(Time.now + 500000, [:put, :options],
-                                      @@test_dir_path + '/obj1')
+                                      @@test_deprecated_dir_path + '/obj1')
 
     result = client.options("https://" + put_url, {
-      'Access-Control-Request-Headers' => 'access-control-allow-origin, accept, content-type',
-      'Access-Control-Request-Method' => 'PUT'
-    })
+                                                    'Access-Control-Request-Headers' => 'access-control-allow-origin, accept, content-type',
+                                                    'Access-Control-Request-Method' => 'PUT'
+                                                })
 
     assert_equal result.status, 200
 
@@ -318,7 +317,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal result.status, 204
 
     url = @@client.gen_signed_url(Time.now + 500000, :get,
-                                  @@test_dir_path + '/obj1')
+                                  @@test_deprecated_dir_path + '/obj1')
 
     result = client.get('http://' + url)
     assert_equal result.body, 'foo-data'
@@ -326,33 +325,33 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_snaplinks
+  def test_deprecated_snaplinks
     begin
-      @@client.put_snaplink(@@test_dir_path + '/obj1',
-                            @@test_dir_path + '/obj2')
+      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                            @@test_deprecated_dir_path + '/obj2')
       assert false
     rescue MantaClient::SourceObjectNotFound
     end
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
 
-    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
-                                            @@test_dir_path + '/obj2')
+    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                                            @@test_deprecated_dir_path + '/obj2')
     assert_equal result, true
     assert headers.is_a? Hash
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data')
-   
-    result, _ = @@client.get_object(@@test_dir_path + '/obj1')
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data')
+
+    result, _ = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'bar-data'
-   
-    result, _ = @@client.get_object(@@test_dir_path + '/obj2')
+
+    result, _ = @@client.get_object(@@test_deprecated_dir_path + '/obj2')
     assert_equal result, 'foo-data'
   end
 
 
 
-  def test_reports
+  def test_deprecated_reports
     begin
       @@client.list_directory('/%s/reportse' % @@user)
       assert fail
@@ -362,7 +361,10 @@ class TestMantaClient < MiniTest::Unit::TestCase
     result, headers = @@client.list_directory('/%s/reports' % @@user)
     assert headers.is_a? Hash
     assert result.is_a? Array
-    assert result.length > 0
+
+    if result.length < 1
+      skip 'Usage directory has not been created yet'
+    end
 
     result, headers = @@client.list_directory('/%s/reports/usage' % @@user)
     assert headers.is_a? Hash
@@ -372,8 +374,8 @@ class TestMantaClient < MiniTest::Unit::TestCase
 
 
 
-  def test_conditionals_on_objects
-    result, headers = @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+  def test_deprecated_conditionals_on_objects
+    result, headers = @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
                                           :if_modified_since => Time.now)
     assert_equal result, true
 
@@ -383,45 +385,45 @@ class TestMantaClient < MiniTest::Unit::TestCase
     sleep 1
 
     begin
-      @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
                           :if_modified_since => modified)
       assert fail
     rescue MantaClient::PreconditionFailed
     end
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'foo-data'
     assert_equal headers['Last-Modified'], modified
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'bar-data',
                         :if_unmodified_since => modified)
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'bar-data'
     assert headers['Last-Modified'] != modified
 
     etag = headers['Etag']
 
     begin
-      @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+      @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
                           :if_none_match => etag)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'bar-data'
     assert_equal headers['Etag'], etag
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data',
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data',
                         :if_match => etag)
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1')
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1')
     assert_equal result, 'foo-data'
     assert headers['Etag'] != etag
 
     begin
-      @@client.get_object(@@test_dir_path + '/obj1', :if_match => etag)
+      @@client.get_object(@@test_deprecated_dir_path + '/obj1', :if_match => etag)
       assert false
     rescue MantaClient::PreconditionFailed
     end
@@ -429,83 +431,83 @@ class TestMantaClient < MiniTest::Unit::TestCase
     etag     = headers['Etag']
     modified = headers['Last-Modified']
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
                                           :if_match => etag)
     assert_equal result, 'foo-data'
     assert_equal headers['Etag'], etag
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
                                           :if_none_match => etag)
     assert_equal result, nil
     assert_equal headers['Etag'], etag
 
-    result, headers = @@client.get_object(@@test_dir_path + '/obj1',
+    result, headers = @@client.get_object(@@test_deprecated_dir_path + '/obj1',
                                           :if_none_match => 'blahblah')
     assert_equal result, 'foo-data'
     assert_equal headers['Etag'], etag
 
     begin
-      @@client.put_snaplink(@@test_dir_path + '/obj1',
-                            @@test_dir_path + '/obj2',
+      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                            @@test_deprecated_dir_path + '/obj2',
                             :if_none_match => etag)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
-                                            @@test_dir_path + '/obj2',
+    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                                            @@test_deprecated_dir_path + '/obj2',
                                             :if_match => etag)
     assert true
     assert_equal headers['Etag'], etag
 
     begin
-      @@client.put_snaplink(@@test_dir_path + '/obj1',
-                            @@test_dir_path + '/obj3',
+      @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                            @@test_deprecated_dir_path + '/obj3',
                             :if_modified_since => modified)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    @@client.put_snaplink(@@test_dir_path + '/obj1', @@test_dir_path + '/obj3',
+    @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1', @@test_deprecated_dir_path + '/obj3',
                           :if_unmodified_since => modified)
 
-    result, headers = @@client.put_snaplink(@@test_dir_path + '/obj1',
-                                            @@test_dir_path + '/obj4',
+    result, headers = @@client.put_snaplink(@@test_deprecated_dir_path + '/obj1',
+                                            @@test_deprecated_dir_path + '/obj4',
                                             :if_unmodified_since => modified)
     assert true
 
     modified = headers['Last Modified']
 
     begin
-      @@client.delete_object(@@test_dir_path + '/obj1', :if_none_match => etag)
+      @@client.delete_object(@@test_deprecated_dir_path + '/obj1', :if_none_match => etag)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    result, _ = @@client.delete_object(@@test_dir_path + '/obj1', :if_match => etag)
+    result, _ = @@client.delete_object(@@test_deprecated_dir_path + '/obj1', :if_match => etag)
     assert_equal result, true
 
     sleep 1
 
     begin
-      @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now - 10000)
+      @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_unmodified_since => Time.now - 10000)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
     begin
-      @@client.delete_object(@@test_dir_path + '/obj3', :if_modified_since => Time.now)
+      @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_modified_since => Time.now)
       assert false
     rescue MantaClient::PreconditionFailed
     end
 
-    @@client.delete_object(@@test_dir_path + '/obj3', :if_unmodified_since => Time.now)
-    @@client.delete_object(@@test_dir_path + '/obj4', :if_modified_since=> Time.now - 10000)
+    @@client.delete_object(@@test_deprecated_dir_path + '/obj3', :if_unmodified_since => Time.now)
+    @@client.delete_object(@@test_deprecated_dir_path + '/obj4', :if_modified_since=> Time.now - 10000)
 
 
     for obj_name in ['/obj1', '/obj3', '/obj4']
       begin
-        @@client.get_object(@@test_dir_path + obj_name)
+        @@client.get_object(@@test_deprecated_dir_path + obj_name)
         assert false
       rescue MantaClient::ResourceNotFound
       end
@@ -517,7 +519,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
   # This test is definitely not pretty, but splitting it up will make it
   # take much longer due to the redundant creation of jobs. Perhaps that's
   # the wrong choice...
-  def test_jobs
+  def test_deprecated_jobs
     result, headers = @@client.list_jobs(:running)
     assert headers.is_a? Hash
 
@@ -562,7 +564,7 @@ class TestMantaClient < MiniTest::Unit::TestCase
     end
 
     jobs, _ = @@client.list_jobs(:running)
-    assert_equal jobs.size, 1
+    assert_equal 1, jobs.size
     assert_equal jobs[0]['type'], 'directory'
     assert_equal jobs[0]['name'], path.split('/').last
 
@@ -581,12 +583,12 @@ class TestMantaClient < MiniTest::Unit::TestCase
     assert_equal job['cancelled'], false
     assert_equal job['timeDone' ], nil
 
-    @@client.put_object(@@test_dir_path + '/obj1', 'foo-data')
-    @@client.put_object(@@test_dir_path + '/obj2', 'bar-data')
+    @@client.put_object(@@test_deprecated_dir_path + '/obj1', 'foo-data')
+    @@client.put_object(@@test_deprecated_dir_path + '/obj2', 'bar-data')
 
-    obj_key_paths = [@@test_dir_path + '/obj1',
-                     @@test_dir_path + '/obj2',
-                     @@test_dir_path + '/obj3']
+    obj_key_paths = [@@test_deprecated_dir_path + '/obj1',
+                     @@test_deprecated_dir_path + '/obj2',
+                     @@test_deprecated_dir_path + '/obj3']
 
     result, headers = @@client.add_job_keys(path, obj_key_paths)
     assert_equal result, true

@@ -64,19 +64,19 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
 
     # You'll need to provide these four environment variables to run this
     # example. E.g.:
-    # USER=john KEY=~/.ssh/john HOST=https://us-east.manta.joyent.com DIR=. \
+    # MANTA_USER=john KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com LOCAL_DIR=. \
     #   ruby example.rb
-    host       = ENV['HOST']
-    user       = ENV['USER']
-    priv_key   = ENV['KEY' ]
-    upload_dir = ENV['DIR' ]
+    host       = ENV['MANTA_URL']
+    user       = ENV['MANTA_USER']
+    priv_key   = ENV['MANTA_KEY' ]
+    upload_dir = ENV['LOCAL_DIR' ]
 
     # Read in private key, create a MantaClient instance. MantaClient is
     # thread-safe and provides persistent connections with pooling, so you'll
     # only ever need a single instance of this in a program.
     priv_key_data = File.read(priv_key)
-    client = MantaClient.new(host, user, priv_key_data,
-                             :disable_ssl_verification => true)
+    client = RubyManta::MantaClient.new(host, user, priv_key_data,
+                                        :disable_ssl_verification => true)
 
     # Create an directory in Manta solely for this example run.
     dir_path = '/' + user + '/stor/ruby-manta-example'
@@ -183,7 +183,7 @@ see his image.png? In this case there is also the "public" space:
 Signed URLs
 -----------
 
-Objects put in the public space are accessible by everyone. Objects in the 
+Objects put in the public space are accessible by everyone. Objects in the
 private space are only accessible by individuals authenticated and authorized
 by Manta. Manta also supports temporary signed URLs that allow unauthenticated
 individuals to operate on private objects, until the link expires. See
@@ -312,8 +312,8 @@ Example:
 ````` ruby
 
     priv_key_data = File.read('/home/john/.ssh/john')
-    client = MantaClient.new('https://manta.joyentcloud.com', 'john',
-                             priv_key_data, :disable_ssl_verification => true)
+    client = RubyManta::MantaClient.new('https://manta.joyentcloud.com', 'john',
+                                        priv_key_data, :disable_ssl_verification => true)
 `````
 
 
@@ -438,6 +438,20 @@ Examples:
                                        :head => true)
 `````
 
+
+
+find(dir_path, _options_)
+-----------------------
+
+Finds all Manta objects underneath a given path,
+
+The path must be a valid directory path and point at an actual directory.
+
+The path must be a valid directory path and point at an actual directory.
+:limit optionally changes the maximum number of entries; the default is 1000.
+If given :marker, an object name in the directory, returned directory entries
+will begin from that point. :regex => can optionally be passed in to filter
+filenames by a given regular expression.
 
 
 delete_directory(dir_path, _options_)
