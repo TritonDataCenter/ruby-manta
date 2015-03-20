@@ -18,7 +18,9 @@ raise 'You must specify LOCAL_DIR' unless upload_dir
 # only ever need a single instance of this in a program.
 priv_key_data = File.read(priv_key)
 client = RubyManta::MantaClient.new(host, user, priv_key_data,
-                                    :disable_ssl_verification => true)
+                                    :disable_ssl_verification => true,
+#                                    :subuser => 'monte',
+                                    )
 
 # Create an directory in Manta solely for this example run.
 dir_path = '/' + user + '/stor/ruby-manta-example'

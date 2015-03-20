@@ -757,4 +757,45 @@ class TestMantaClient < Minitest::Test
       assert headers.is_a? Hash
     end
   end
+
+  def test_find_subdirectory_regex
+    copies = 15
+
+    @@client.put_directory("#{@@test_dir_path}/a")
+    @@client.put_directory("#{@@test_dir_path}/b")
+
+    begin
+      copies.times do |i|
+        dir_name = i % 2 == 0 ? 'a' : 'b'
+        @@client.put_object("#{@@test_dir_path}/#{dir_name}/find_object_#{i}", 'test_find_regex')
+      end
+
+      @@client.put_object(@@test_dir_path + '/dog_biscuit', 'dont match me')
+
+      results = @@client.find(@@test_dir_path, regex: '^find_object_.*')
+
+      assert_equal copies, results.length
+
+      copies.times do |i|
+        dir_name = i % 2 == 0 ? 'a' : 'b'
+        assert results.include? "#{@@test_dir_path}/#{dir_name}/find_object_#{i}"
+      end
+
+      refute results.include? @@test_dir_path + '/dog_biscuit'
+    ensure
+      copies.times do |i|
+        dir_name = i % 2 == 0 ? 'a' : 'b'
+        result, headers = @@client.delete_object("#{@@test_dir_path}/#{dir_name}/find_object_#{i}")
+        assert_equal result, true
+        assert headers.is_a? Hash
+      end
+
+      result, headers = @@client.delete_object(@@test_dir_path + "/dog_biscuit")
+      assert_equal result, true
+      assert headers.is_a? Hash
+
+      @@client.delete_directory("#{@@test_dir_path}/a")
+      @@client.delete_directory("#{@@test_dir_path}/b")
+    end
+  end
 end

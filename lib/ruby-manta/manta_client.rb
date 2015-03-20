@@ -334,9 +334,9 @@ module RubyManta
       listing = response.first
 
       listing.inject([]) do |memo, obj|
-        if obj['type'] == 'dir_path'
+        if obj['type'] == 'directory'
           sub_dir = "#{dir_path}/#{obj['name']}"
-          sub_search = find(sub_dir, regex)
+          sub_search = find(sub_dir, regex: regex)
           memo.push(*sub_search)
         end
 

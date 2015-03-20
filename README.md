@@ -76,7 +76,9 @@ hurried friend, is an example demonstrating some of ruby-manta's usage:
     # only ever need a single instance of this in a program.
     priv_key_data = File.read(priv_key)
     client = RubyManta::MantaClient.new(host, user, priv_key_data,
-                                        :disable_ssl_verification => true)
+                                        :disable_ssl_verification => true,
+    #                                   :subuser => 'monte'
+                                        )
 
     # Create an directory in Manta solely for this example run.
     dir_path = '/' + user + '/stor/ruby-manta-example'
@@ -165,6 +167,15 @@ supports it either.
 
 
 
+Changes in 2.0.0
+----------------
+ * MantaClient was moved into the namespace RubyManta::MantaClient. Compatibility
+   with the namespaceless 1.0.0 MantaClient was maintained, but it may not be
+   there in the future, so please update your application code.
+ * Subuser support was added to the client.
+
+
+
 Public and Private spaces
 -------------------------
 
@@ -204,10 +215,37 @@ at the resulting objects.
 
 
 
+Subusers
+---------
+The Joyent public cloud and Smart Data Center now support subusers - that is
+users with their own unique ACLs who are managed by the primary account holder.
+It may be useful to have a Manta-specific subuser so that your applications do
+not have the primary account's credentials stored on their servers. This helps
+mitigate the risk if a system is compromised. You can find the ACLs needed to
+add a Manta only user on the
+[Joyent RBAC Rules Support Page](https://docs.joyent.com/jpc/rbac/rules#mantaactions).
+
+If you want to enable for Manta access for a single user, you will need to grant
+them:
+
+ * putdirectory
+ * getdirectory
+ * deletedirectory
+ * putobject
+ * getobject
+ * deleteobject
+ * putlink
+ * createjob
+ * listjobs
+ * getjob
+ * managejob
+
+
+
 The API
 =======
 
-A note on sematics
+A note on semantics
 ------------------
 
 All methods throw exceptions upon failure. If a method doesn't throw, the
