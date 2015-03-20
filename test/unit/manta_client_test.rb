@@ -12,7 +12,7 @@ class TestMantaClient < Minitest::Test
       @@user = ENV['MANTA_USER']
 
       unless host && key && @@user
-        $stderr.puts 'Require HOST, USER and KEY env variables to run tests.'
+        $stderr.puts 'Require MANTA_URL, MANTA_USER and MANTA_KEY env variables to run tests.'
         $stderr.puts 'E.g. MANTA_USER=john MANTA_KEY=~/.ssh/john MANTA_URL=https://us-east.manta.joyent.com bundle exec rake test'
         exit
       end
