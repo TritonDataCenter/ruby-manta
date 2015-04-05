@@ -207,11 +207,14 @@ class TestMantaClient < Minitest::Test
 
     @@client.put_object(@@test_dir_path + '/obj1', 'bar-data',
                         :content_type     => 'application/wacky',
-                        :durability_level => 3)
+                        :durability_level => 3,
+                        :m_zip            => "zap"
+                       )
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1')
     assert_equal result, 'bar-data'
     assert_equal headers['Content-Type'], 'application/wacky'
+    assert_equal headers['m-zip'],        'zap'
 
     result, headers = @@client.get_object(@@test_dir_path + '/obj1', :head => true)
     assert_equal result, true
