@@ -169,9 +169,9 @@ supports it either.
 
 Changes in 2.0.0
 ----------------
- * MantaClient was moved into the namespace RubyManta::MantaClient. Compatibility
-   with the namespaceless 1.0.0 MantaClient was maintained, but it may not be
-   there in the future, so please update your application code.
+ * MantaClient was moved into the namespace RubyManta::MantaClient.
+   Compatibility with the namespaceless 1.0.0 MantaClient was maintained, but it
+   may not be there in the future, so please update your application code.
  * Subuser support was added to the client.
 
 
@@ -325,6 +325,26 @@ by passing in optional arguments to put_object() or put_directory():
 :access_control_expose_headers, :access_control_max_age
 
 You can also pass in :origin to most object- and directory-related methods.
+
+
+
+Custom headers
+--------------
+
+Manta allows additional custom headers to be
+[added with an object](https://apidocs.joyent.com/manta/storage-reference.html#custom-headers).
+When the object is retrieved, the custom headers are returned as well.
+
+ruby-manta supports this, by adding any :m_* arguments as headers to an object.
+For example, to add an 'M-Foobar' header with an object:
+
+```ruby
+
+    client.put_object(/john/stor/passwd', 'weak', :m_foobar => 'baz')
+```
+
+A reminder when reading back headers (e.g. using get_object()) that header names
+are case-insensitive (see RFC 2616). 'M-Foobar' may return as 'm-foobar'.
 
 
 

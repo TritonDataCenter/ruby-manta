@@ -849,10 +849,12 @@ module RubyManta
     end
 
 
+
     # :m_some_header becomes "M-Some-Header"
     def symbol_to_header(header_symbol)
-      header_symbol.to_s.split("_").map(&:capitalize).join("-")
+      header_symbol.to_s.split('_').map(&:capitalize).join('-')
     end
+
 
 
     # Creates headers to be given to the HTTP client and sent to the Manta
@@ -894,9 +896,11 @@ module RubyManta
         headers.push([ 'Origin',  origin ])
       end
 
-      custom_headers = opts.keys.select{|key| key.to_s.start_with? "m_" }
+      custom_headers = opts.keys.select { |key| key.to_s.start_with? 'm_' }
       unless custom_headers.empty?
-        headers += custom_headers.map{|header_key| [ symbol_to_header(header_key), opts[header_key] ] }
+        headers += custom_headers.map do |header_key|
+          [ symbol_to_header(header_key), opts[header_key] ]
+        end
       end
 
       # add md5 hash when sending data
